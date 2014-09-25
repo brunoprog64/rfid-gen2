@@ -10,3 +10,18 @@
 .svn
 *.log
 *.out
+# editor temporary files
+*.swp
+*.swo
+*~
+# intermediate files
+*.Plo
+*.la
+*.lo
+*.Po
+*.d
+rfid/lib/.libs/
+rfid/swig/.deps/
+rfid/swig/.libs/
+# temorary files
+rfid/autom4te.cache
