@@ -97,7 +97,8 @@ rfid_reader_f::rfid_reader_f (int sample_rate)
    memcpy(d_CMD, CMD, 5);
    char DR[2] = "0";
    memcpy(d_DR, DR, 2);
-   char M[3] = "10";
+   //Force the M2 Modulation scheme.
+   char M[3] = "01";   //char M[3] = "10"
    memcpy(d_M, M, 3);
    char tr_ext[2] = "1";
    memcpy(d_tr_ext, tr_ext, 2);
@@ -955,6 +956,7 @@ rfid_reader_f::send_read(){
      global_reader_state->tag_one_cor_vec_len = m8_one_len;
      global_reader_state->num_pulses_per_bit = 16;
      global_reader_state->num_samples_per_bit = global_reader_state->num_pulses_per_bit * global_reader_state->num_samples_per_pulse; 
+     //printf("M8 Modulation...\n");
 
    }
    if(strcmp(d_M, "10") == 0){
@@ -964,6 +966,7 @@ rfid_reader_f::send_read(){
      global_reader_state->tag_one_cor_vec_len = m4_one_len;
      global_reader_state->num_pulses_per_bit = 8;
      global_reader_state->num_samples_per_bit = global_reader_state->num_pulses_per_bit * global_reader_state->num_samples_per_pulse; 
+     //printf("M4 Modulation...\n");
 
    }
    if(strcmp(d_M, "01") == 0){
@@ -973,6 +976,7 @@ rfid_reader_f::send_read(){
      global_reader_state->tag_one_cor_vec_len = m2_one_len;
      global_reader_state->num_pulses_per_bit = 4;
      global_reader_state->num_samples_per_bit = global_reader_state->num_pulses_per_bit * global_reader_state->num_samples_per_pulse; 
+     //printf("M2 Modulation...\n");
    }
 
  }

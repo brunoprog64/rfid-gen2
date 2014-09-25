@@ -1,0 +1,12 @@
+#exclude all binaries or .log
+#-----------------------------
+*.dmp
+*.o
+*.so
+*.bin
+*.pyo
+*.pyc
+.svn*
+.svn
+*.log
+*.out

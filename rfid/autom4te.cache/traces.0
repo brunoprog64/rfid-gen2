@@ -3097,7 +3097,7 @@ m4trace:configure.ac:34: -1- AM_INIT_AUTOMAKE([gr-rfid], [$RELEASE])
 m4trace:configure.ac:34: -1- m4_pattern_allow([^AM_[A-Z]+FLAGS$])
 m4trace:configure.ac:34: -1- AM_SET_CURRENT_AUTOMAKE_VERSION
 m4trace:configure.ac:34: -1- AM_AUTOMAKE_VERSION([1.11.1])
-m4trace:configure.ac:34: -1- _AM_AUTOCONF_VERSION([2.67])
+m4trace:configure.ac:34: -1- _AM_AUTOCONF_VERSION([2.65])
 m4trace:configure.ac:34: -1- m4_pattern_allow([^INSTALL_PROGRAM$])
 m4trace:configure.ac:34: -1- m4_pattern_allow([^INSTALL_SCRIPT$])
 m4trace:configure.ac:34: -1- m4_pattern_allow([^INSTALL_DATA$])
@@ -3259,7 +3259,7 @@ config/lf_cxx.m4:43: LF_CXX_PORTABILITY is expanded from...
 config/lf_cxx.m4:32: LF_CONFIGURE_CXX is expanded from...
 configure.ac:38: the top level])
 m4trace:configure.ac:38: -1- _m4_warn([obsolete], [The macro `AC_TRY_COMPILE' is obsolete.
-You should run autoupdate.], [../../lib/autoconf/general.m4:2602: AC_TRY_COMPILE is expanded from...
+You should run autoupdate.], [../../lib/autoconf/general.m4:2581: AC_TRY_COMPILE is expanded from...
 config/lf_cxx.m4:43: LF_CXX_PORTABILITY is expanded from...
 config/lf_cxx.m4:32: LF_CONFIGURE_CXX is expanded from...
 configure.ac:38: the top level])
@@ -3448,19 +3448,14 @@ m4trace:configure.ac:38: -1- m4_pattern_allow([^HAVE_WINDOWS_H$])
 m4trace:configure.ac:38: -1- m4_pattern_allow([^HAVE_STRUCT_TIMEZONE$])
 m4trace:configure.ac:38: -1- m4_pattern_allow([^HAVE_STRUCT_TIMESPEC$])
 m4trace:configure.ac:38: -1- m4_pattern_allow([^HAVE_SSIZE_T$])
-m4trace:configure.ac:38: -1- m4_pattern_allow([^HAVE_GETOPT$])
-m4trace:configure.ac:38: -1- m4_pattern_allow([^LIB@&t@OBJS$])
-m4trace:configure.ac:38: -1- m4_pattern_allow([^HAVE_USLEEP$])
-m4trace:configure.ac:38: -1- m4_pattern_allow([^LIB@&t@OBJS$])
-m4trace:configure.ac:38: -1- m4_pattern_allow([^HAVE_GETTIMEOFDAY$])
 m4trace:configure.ac:38: -1- m4_pattern_allow([^LIB@&t@OBJS$])
 m4trace:configure.ac:38: -1- _m4_warn([obsolete], [The macro `AC_TRY_LINK' is obsolete.
-You should run autoupdate.], [../../lib/autoconf/general.m4:2675: AC_TRY_LINK is expanded from...
+You should run autoupdate.], [../../lib/autoconf/general.m4:2654: AC_TRY_LINK is expanded from...
 config/gr_pwin32.m4:23: GR_PWIN32 is expanded from...
 configure.ac:38: the top level])
 m4trace:configure.ac:38: -1- m4_pattern_allow([^HAVE_SSLEEP$])
 m4trace:configure.ac:38: -1- _m4_warn([obsolete], [The macro `AC_TRY_COMPILE' is obsolete.
-You should run autoupdate.], [../../lib/autoconf/general.m4:2602: AC_TRY_COMPILE is expanded from...
+You should run autoupdate.], [../../lib/autoconf/general.m4:2581: AC_TRY_COMPILE is expanded from...
 config/gr_pwin32.m4:23: GR_PWIN32 is expanded from...
 configure.ac:38: the top level])
 m4trace:configure.ac:38: -1- m4_pattern_allow([^MKDIR_TAKES_ONE_ARG$])

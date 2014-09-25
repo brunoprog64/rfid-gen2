@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #Developed by: Michael Buettner (buettner@cs.washington.edu)
+#Modified by: Bruno Espinoza (bruno.espinozaamaya@uqconnect.edu.au)
 
 from gnuradio import gr, gru
 from gnuradio import usrp
@@ -12,19 +13,24 @@ import time
 import os
 import math
 import rfid
+import optparse
 
 
-log_file = open("log_out.log", "a")
+
+#parser for frequency and other options
+parser = optparse.OptionParser();
+parser.add_option('--f', action="store", dest="center_freq", default="915e6", help="Center Frequency", type="float");
+parser.add_option('--g', action="store", dest="rx_gain", default="20", help="RX Gain", type="float");
+parser.add_option('--l', action="store", dest="log_file", default="log_out.log", help="Log file name");
+options, args = parser.parse_args();
+
+log_file = open(options.log_file, "a")
 
 class my_top_block(gr.top_block):
     def __init__(self):
         gr.top_block.__init__(self)
            
-        amplitude = 5000
-
-        filt_out = gr.file_sink(gr.sizeof_gr_complex, "./filt.out")
-        ffilt_out = gr.file_sink(gr.sizeof_float, "./ffilt.out")
-        
+        amplitude = 5000        
         interp_rate = 256
         dec_rate = 16
         sw_dec = 5
@@ -55,22 +61,18 @@ class my_top_block(gr.top_block):
         
         command_gate = rfid.command_gate_cc(12, 250, 64000000 / dec_rate / sw_dec)
         
-
-       
-       
+        
         to_complex = gr.float_to_complex()
         amp = gr.multiply_const_ff(amplitude)
         
-        f_sink = gr.file_sink(gr.sizeof_gr_complex, 'f_sink.out');
-        f_sink2 = gr.file_sink(gr.sizeof_gr_complex, 'f_sink2.out');
-
-
-            #TX
-      
-
-
-        freq = 915e6
-        rx_gain = 20  
+        #output the TX and RX signals only
+        f_txout = gr.file_sink(gr.sizeof_gr_complex, 'f_txout.out');
+        f_rxout = gr.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
+        
+#TX
+		# working frequency at 915 MHz by default and RX Gain of 20
+        freq = options.center_freq #915e6 
+        rx_gain = options.rx_gain #20  
     
         tx = usrp.sink_c(fusb_block_size = 512, fusb_nblocks=4)
         tx.set_interp_rate(256)
@@ -114,12 +116,10 @@ class my_top_block(gr.top_block):
         self.connect(to_mag, center, mm, tag_decoder)
         self.connect(tag_decoder, self.reader, amp, to_complex, tx);
 #################
-
-        
-        self.connect(matched_filt, filt_out)
-        #self.connect(mm, ffilt_out)
-
-        
+		
+		#Output dumps for debug
+        self.connect(rx, f_rxout);
+        self.connect(to_complex, f_txout);
 
 def main():
     

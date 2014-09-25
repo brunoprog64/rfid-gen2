@@ -11,8 +11,8 @@ const int READER_CYCLE_TIMER_RATE = 500; //XXX ms
 
 //These specify how many cycles, and how many rounds in each cycle, before the reader stops
 // Note that if CHANGE_Q is true, a cycle ends when all tags are read. 
-const int READER_NUM_CYCLES = 5;  //Number of Cycles, i.e. Power downs
-const int READER_NUM_ROUNDS = 1;    //How many Queries per cycle. Only used if !CHANGE_Q. 
+const int READER_NUM_CYCLES = 5;  //Number of Cycles, i.e. Power downs ~ 5
+const int READER_NUM_ROUNDS = 10;    //How many Queries per cycle. Only used if !CHANGE_Q. ~ 1
 ////////
 
 //These specify how Q is changed
@@ -100,7 +100,7 @@ const int tari_width = 12;
 //For 40 kHz uplink
 const int trcal_width = 200;  //for 40 kHz
 const int rtcal_width = 72;  //28 or 40
-const int NUM_SAMPLES_PER_PULSE = 10;     
+const int NUM_SAMPLES_PER_PULSE = 10;     //~10
 
 
 //For WISP. Remember to use M4 only

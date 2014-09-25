@@ -154,7 +154,7 @@
 
 
 /* Version number of package */
-#define VERSION "3.3git"
+#define VERSION "3.3git-5b4fde63"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
