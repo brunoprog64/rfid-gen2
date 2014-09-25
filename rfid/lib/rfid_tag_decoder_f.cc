@@ -4,7 +4,7 @@
 #endif
 
 #include <rfid_tag_decoder_f.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
@@ -21,9 +21,9 @@ rfid_make_tag_decoder_f ()
 }
 
 rfid_tag_decoder_f::rfid_tag_decoder_f()
-  : gr_block("rfid_tag_decoder_f",
-	     gr_make_io_signature (1, 1, sizeof(float)),
-	     gr_make_io_signature (1, 1, sizeof(float)))
+  : gr::block("rfid_tag_decoder_f",
+	     gr::io_signature::make (1, 1, sizeof(float)),
+	     gr::io_signature::make (1, 1, sizeof(float)))
   
         
 {
@@ -115,7 +115,7 @@ int rfid_tag_decoder_f::general_work(int noutput_items,
                                (global_reader_state->num_bits_to_decode / 2 )))){
 	d_samples_processed = 0;
 	global_reader_state->decoder_status = DECODER_CLEAR_PIPE;
-	gr_message_sptr ctrl_msg = gr_make_message(0,
+	gr::message::sptr ctrl_msg = gr::message::make(0,
 						   sizeof(int),
 						   0,
 						   (1) * sizeof(int));
@@ -168,7 +168,7 @@ int rfid_tag_decoder_f::general_work(int noutput_items,
 
 	global_reader_state->num_bits_decoded = 0;
 	
-	gr_message_sptr ctrl_msg = gr_make_message(0,
+	gr::message::sptr ctrl_msg = gr::message::make(0,
 						   sizeof(int),
 						   0,
 						   (1) * sizeof(int));

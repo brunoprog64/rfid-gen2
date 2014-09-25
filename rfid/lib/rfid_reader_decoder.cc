@@ -4,7 +4,7 @@
 #endif
 
 #include <rfid_reader_decoder.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
@@ -19,14 +19,14 @@ rfid_make_reader_decoder (float us_per_sample, float tari)
 }
 
 rfid_reader_decoder::rfid_reader_decoder(float us_per_sample, float tari)
-  : gr_sync_block("rfid_reader_decoder",
-	     gr_make_io_signature (1, 1, sizeof(float)),
-	     gr_make_io_signature (1,1,sizeof(float))),
+  : gr::sync_block("rfid_reader_decoder",
+	     gr::io_signature::make (1, 1, sizeof(float)),
+	     gr::io_signature::make (1,1,sizeof(float))),
     d_us_per_sample(us_per_sample)
   
         
 {
-  log_q = gr_make_msg_queue(100000);
+  log_q = gr::msg_queue::make(100000);
   d_delim_width = (int)((1 / d_us_per_sample) * 12.5);
   d_max_tari = (int)((1 / d_us_per_sample) * 30);
   d_min_amp_thresh = MIN_AMP_THRESH;
@@ -62,7 +62,7 @@ rfid_reader_decoder::rfid_reader_decoder(float us_per_sample, float tari)
       
   int str_len = sprintf(tmp_str, "###%s", s);
       
-  gr_message_sptr log_msg =  gr_make_message(START,
+  gr::message::sptr log_msg =  gr::message::make(START,
 					       0,
 					       0,
 					       str_len); 
@@ -323,7 +323,7 @@ rfid_reader_decoder::log_event(int event, int lag_samples){
     char tmp_str[10000];
     int str_len = sprintf(tmp_str, "DECODED:PWR_DWN,INTERARRIVAL:%f,TIME:%d:%d:%d.%.6ld", interarrival, now->tm_hour, now->tm_min, now->tm_sec, time.tv_usec);
 
-    gr_message_sptr log_msg =  gr_make_message(POWER_DOWN,
+    gr::message::sptr log_msg =  gr::message::make(POWER_DOWN,
 					       0,
 					       0,
 					       str_len); 
@@ -353,7 +353,7 @@ rfid_reader_decoder::log_event(int event, int lag_samples){
     
     d_interarrival_count = lag_samples;  //Start tracking interarrival time
     
-    gr_message_sptr log_msg =  gr_make_message(READER_COMMAND,
+    gr::message::sptr log_msg =  gr::message::make(READER_COMMAND,
 					       0,
 					       0,
 					       str_len); 

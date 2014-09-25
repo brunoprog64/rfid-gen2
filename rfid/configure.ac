@@ -47,7 +47,7 @@ dnl AC_CHECK_HEADERS(sys/mman.h)
 dnl Checks for library functions.
 dnl AC_CHECK_FUNCS([])
 
-dnl We pick up the boost cppflags, cxxflags and thread lib via GNURADIO_CORE
+dnl We pick up the boost cppflags, cxxflags and thread lib via GNURADIO_RUNTIME_
 dnl
 dnl If you need additional boost libraries, you'll need to
 dnl uncomment AX_BOOST_BASE, plus some of the following:

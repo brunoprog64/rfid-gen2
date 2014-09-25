@@ -7,7 +7,7 @@
 
 
 #include <rfid_reader_f.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <cstdlib>
 #include <cstdio>
 #include <signal.h>
@@ -25,15 +25,15 @@ rfid_make_reader_f (int sample_rate)
 
 
 rfid_reader_f::rfid_reader_f (int sample_rate)
-  : gr_block ("reader_f",
-		   gr_make_io_signature (1, 1, sizeof(float)),
-		   gr_make_io_signature (1, 1, sizeof (float))),
-    d_sample_rate (sample_rate), d_ctrl_q(gr_make_msg_queue(100))
+  : gr::block ("reader_f",
+		   gr::io_signature::make (1, 1, sizeof(float)),
+		   gr::io_signature::make (1, 1, sizeof (float))),
+    d_sample_rate (sample_rate), d_ctrl_q(gr::msg_queue::make(100))
 {
   init_global_reader_state();
 
-  log_q = gr_make_msg_queue(500000);//Holds log messages, drained by python app
-  out_q = gr_make_msg_queue(1000);  //Holds messages for transmission at the end of work
+  log_q = gr::msg_queue::make(500000);//Holds log messages, drained by python app
+  out_q = gr::msg_queue::make(1000);  //Holds messages for transmission at the end of work
   
   d_us_per_xmit = 1000000 / (float)sample_rate;
   
@@ -393,7 +393,7 @@ rfid_reader_f::start_cycle(){
   num_pkts = ((min_pwr_dwn / d_us_per_xmit) / usrp_pkt_size); //Round to the nearest usrp_pkt_size samples
   
   for(int i = 0; i < num_pkts; i++){
-    gr_message_sptr pwr_dwn_msg = gr_make_message(0,
+    gr::message::sptr pwr_dwn_msg = gr::message::make(0,
 						  sizeof(float),
 						  0,
 						  (usrp_pkt_size) * sizeof(float));
@@ -430,14 +430,14 @@ rfid_reader_f::start_cycle(){
    num_pkts = ((min_cw / d_us_per_xmit) / usrp_pkt_size);
    
    for(int i = 0; i < num_pkts; i++){
-     gr_message_sptr cw_msg = gr_make_message(0,
+     gr::message::sptr cw_msg = gr::message::make(0,
 					      sizeof(float),
 					      0,
 					      (usrp_pkt_size) * sizeof(float));
      memcpy(cw_msg->msg(), cw_buffer, usrp_pkt_size * sizeof(float));
      out_q->insert_tail(cw_msg);
    }
-   gr_message_sptr query_msg = gr_make_message(0,
+   gr::message::sptr query_msg = gr::message::make(0,
 					       sizeof(float),
 					       0,
 					       (d_query_len) * sizeof(float));
@@ -457,7 +457,7 @@ rfid_reader_f::start_cycle(){
 
    for(int i = 0; i < ((tail_cw / d_us_per_xmit) / usrp_pkt_size) ; i++){
 
-     gr_message_sptr cw_msg = gr_make_message(0,
+     gr::message::sptr cw_msg = gr::message::make(0,
 					      sizeof(float),
 					      0,
 					      (usrp_pkt_size) * sizeof(float));
@@ -468,7 +468,7 @@ rfid_reader_f::start_cycle(){
 
 
    // for(int i = 0; i < 1; i++){
-   //   gr_message_sptr pwr_dwn_msg = gr_make_message(0,
+   //   gr::message::sptr pwr_dwn_msg = gr::message::make(0,
    // 						  sizeof(float),
    // 						  0,
    // 						  (usrp_pkt_size) * sizeof(float));
@@ -498,14 +498,14 @@ rfid_reader_f::start_cycle(){
    global_reader_state->cur_slot++;
    global_reader_state->last_cmd_sent = QREP;
 
-   // gr_message_sptr cw_msg1 = gr_make_message(0,
+   // gr::message::sptr cw_msg1 = gr::message::make(0,
    // 					    sizeof(float),
    // 					    0,
    // 					    (usrp_pkt_size) * sizeof(float));
    // memcpy(cw_msg1->msg(), cw_buffer, (usrp_pkt_size) * sizeof(float));
    // out_q->insert_tail(cw_msg1);
 
-   gr_message_sptr qrep_msg = gr_make_message(0,
+   gr::message::sptr qrep_msg = gr::message::make(0,
 					      sizeof(float),
 					      0,
 					      d_qrep_len  * sizeof(float));
@@ -529,7 +529,7 @@ rfid_reader_f::start_cycle(){
    int qrep_pad_len = 26;  //This is a hack. It is the right padding for the Qrep, but is hardcoded here.
    for(int i = 0; i < (((tail_cw / d_us_per_xmit) - qrep_pad_len)  / usrp_pkt_size) ; i++){
 
-     gr_message_sptr cw_msg = gr_make_message(0,
+     gr::message::sptr cw_msg = gr::message::make(0,
 					      sizeof(float),
 					      0,
 					      (usrp_pkt_size) * sizeof(float));
@@ -538,7 +538,7 @@ rfid_reader_f::start_cycle(){
    }
 
    //   for(int i = 0; i < 1; i++){
-   //   gr_message_sptr pwr_dwn_msg = gr_make_message(0,
+   //   gr::message::sptr pwr_dwn_msg = gr::message::make(0,
    // 						  sizeof(float),
    // 						  0,
    // 						  (usrp_pkt_size) * sizeof(float));
@@ -555,21 +555,22 @@ rfid_reader_f::send_req_rn(){
 
    global_reader_state->last_cmd_sent = REQ_RN;
 
-   gr_message_sptr cw_msg1 = gr_make_message(0,
+   gr::message::sptr cw_msg1 = gr::message::make(0,
+
 					    sizeof(float),
 					    0,
 					    (usrp_pkt_size) * sizeof(float));
    memcpy(cw_msg1->msg(), cw_buffer, (usrp_pkt_size) * sizeof(float));
    out_q->insert_tail(cw_msg1);
 
-   gr_message_sptr req_rn_msg = gr_make_message(0,
+   gr::message::sptr req_rn_msg = gr::message::make(0,
 					     sizeof(float),
 					     0,
 					     d_req_rn_len * sizeof(float));
    memcpy(req_rn_msg->msg(), d_req_rn, d_req_rn_len * sizeof(float));
    out_q->insert_tail(req_rn_msg);
 
-   gr_message_sptr cw_msg = gr_make_message(0,
+   gr::message::sptr cw_msg = gr::message::make(0,
 					    sizeof(float),
 					    0,
 					    (usrp_pkt_size) * sizeof(float));
@@ -588,22 +589,14 @@ rfid_reader_f::send_read(){
 
    global_reader_state->last_cmd_sent = READ;
 
-   gr_message_sptr cw_msg1 = gr_make_message(0,
+   gr::message::sptr cw_msg1 = gr::message::make(0,
 					    sizeof(float),
 					    0,
 					    (usrp_pkt_size) * sizeof(float));
    memcpy(cw_msg1->msg(), cw_buffer, (usrp_pkt_size) * sizeof(float));
    out_q->insert_tail(cw_msg1);
 
-   cw_msg1 = gr_make_message(0,
-					    sizeof(float),
-					    0,
-					    (usrp_pkt_size) * sizeof(float));
-   memcpy(cw_msg1->msg(), cw_buffer, (usrp_pkt_size) * sizeof(float));
-   out_q->insert_tail(cw_msg1);
-
-
-   cw_msg1 = gr_make_message(0,
+   cw_msg1 = gr::message::make(0,
 					    sizeof(float),
 					    0,
 					    (usrp_pkt_size) * sizeof(float));
@@ -611,14 +604,22 @@ rfid_reader_f::send_read(){
    out_q->insert_tail(cw_msg1);
 
 
-   gr_message_sptr read_msg = gr_make_message(0,
+   cw_msg1 = gr::message::make(0,
+					    sizeof(float),
+					    0,
+					    (usrp_pkt_size) * sizeof(float));
+   memcpy(cw_msg1->msg(), cw_buffer, (usrp_pkt_size) * sizeof(float));
+   out_q->insert_tail(cw_msg1);
+
+
+   gr::message::sptr read_msg = gr::message::make(0,
 					     sizeof(float),
 					     0,
 					     d_read_len * sizeof(float));
    memcpy(read_msg->msg(), d_read, d_read_len * sizeof(float));
    out_q->insert_tail(read_msg);
 
-   gr_message_sptr cw_msg = gr_make_message(0,
+   gr::message::sptr cw_msg = gr::message::make(0,
 					    sizeof(float),
 					    0,
 					    (usrp_pkt_size) * sizeof(float));
@@ -638,7 +639,7 @@ rfid_reader_f::send_read(){
    log_msg(LOG_NAK, NULL, LOG_OKAY);
 
    global_reader_state->last_cmd_sent = NAK;
-   gr_message_sptr nak_msg = gr_make_message(0,
+   gr::message::sptr nak_msg = gr::message::make(0,
 					     sizeof(float),
 					     0,
 					     d_nak_len * sizeof(float));
@@ -650,7 +651,7 @@ rfid_reader_f::send_read(){
    num_pkts = ((spacing / d_us_per_xmit) / usrp_pkt_size); //Round to the nearest usrp_pkt_size samples
 
    for(int i = 0; i < num_pkts; i++){
-     gr_message_sptr cw_msg = gr_make_message(0,
+     gr::message::sptr cw_msg = gr::message::make(0,
 					      sizeof(float),
 					      0,
 					      (usrp_pkt_size) * sizeof(float));
@@ -706,7 +707,7 @@ rfid_reader_f::send_read(){
    memcpy(&tmp[len], cw_buffer, pad *sizeof(float));
 
 
-   gr_message_sptr new_tx_msg = gr_make_message(0,
+   gr::message::sptr new_tx_msg = gr::message::make(0,
 						sizeof(float),
 						0,
 						(len + pad) * sizeof(float));
@@ -731,7 +732,7 @@ rfid_reader_f::send_read(){
 
    for(int i = 0; i < (((tail_cw / d_us_per_xmit) - pad) / usrp_pkt_size) ; i++){
 
-     gr_message_sptr cw_msg = gr_make_message(0,
+     gr::message::sptr cw_msg = gr::message::make(0,
    					      sizeof(float),
    					      0,
    					      (usrp_pkt_size) * sizeof(float));
@@ -742,7 +743,7 @@ rfid_reader_f::send_read(){
 
 
    // for(int i = 0; i < 1; i++){
-   //   gr_message_sptr pwr_dwn_msg = gr_make_message(0,
+   //   gr::message::sptr pwr_dwn_msg = gr::message::make(0,
    // 						  sizeof(float),
    // 						  0,
    // 						  (usrp_pkt_size) * sizeof(float));
@@ -1421,7 +1422,7 @@ rfid_reader_f::log_msg(int message, char * text, int error){
       else{
 	len = sprintf(msg,"Time: %d.%03ld\n", (t_info->tm_hour * 3600) +  (t_info->tm_min * 60) + t_info->tm_sec, time.tv_usec / 1000 );
       }
-      gr_message_sptr log_msg = gr_make_message(message, 
+      gr::message::sptr log_msg = gr::message::make(message, 
 						0,
 						error,
 						len);

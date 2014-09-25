@@ -3,7 +3,7 @@
 #ifndef INCLUDED_rfid_center_ff_H
 #define INCLUDED_rfid_center_ff_H
 
-#include <gr_sync_block.h>
+#include <gnuradio/sync_block.h>
 
 
 class rfid_center_ff;
@@ -12,7 +12,7 @@ typedef boost::shared_ptr<rfid_center_ff> rfid_center_ff_sptr;
 rfid_center_ff_sptr
 rfid_make_center_ff(int samples_per_pulse);
 
-class rfid_center_ff : public gr_sync_block
+class rfid_center_ff : public gr::sync_block
 {  
 
   friend rfid_center_ff_sptr

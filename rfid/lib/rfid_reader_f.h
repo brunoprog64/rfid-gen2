@@ -3,9 +3,9 @@
 #ifndef INCLUDED_RFID_READER_F_H
 #define INCLUDED_RFID_READER_F_H
 
-#include <gr_block.h>
-#include <gr_message.h>
-#include <gr_msg_queue.h>
+#include <gnuradio/block.h>
+#include <gnuradio/message.h>
+#include <gnuradio/msg_queue.h>
 #include "rfid_global_vars.h"
 
 class rfid_reader_f;
@@ -14,7 +14,7 @@ typedef boost::shared_ptr<rfid_reader_f> rfid_reader_f_sptr;
 rfid_reader_f_sptr
 rfid_make_reader_f (int sample_rate);
 
-class rfid_reader_f : public gr_block {
+class rfid_reader_f : public gr::block {
   friend rfid_reader_f_sptr 
   rfid_make_reader_f (int sample_rate);
   
@@ -36,10 +36,10 @@ class rfid_reader_f : public gr_block {
   float * zero_buffer;
   float d_us_per_xmit;
  
-  gr_message_sptr tx_msg;
-  gr_message_sptr d_ctrl_msg;
-  gr_msg_queue_sptr out_q;
-  gr_msg_queue_sptr d_ctrl_q;
+  gr::message::sptr tx_msg;
+  gr::message::sptr d_ctrl_msg;
+  gr::msg_queue::sptr out_q;
+  gr::msg_queue::sptr d_ctrl_q;
   int d_msg_count;
   
   float collision_threshold;
@@ -62,7 +62,7 @@ class rfid_reader_f : public gr_block {
   char d_CRC[6]; 
 
 
-  gr_msg_queue_sptr log_q;
+  gr::msg_queue::sptr log_q;
   enum {LOG_START_CYCLE, LOG_QUERY, LOG_ACK, LOG_QREP, LOG_NAK, LOG_REQ_RN, LOG_READ, LOG_RN16, LOG_EPC, LOG_HANDLE, LOG_DATA, LOG_EMPTY, LOG_COLLISION, LOG_OKAY, LOG_ERROR};
 
   public:
@@ -72,8 +72,8 @@ class rfid_reader_f : public gr_block {
 		   gr_vector_const_void_star &input_items,
 		   gr_vector_void_star &output_items);
   
-  gr_msg_queue_sptr    ctrl_q() const {return d_ctrl_q;}
-  gr_msg_queue_sptr get_log() const {return log_q;}
+  gr::msg_queue::sptr    ctrl_q() const {return d_ctrl_q;}
+  gr::msg_queue::sptr get_log() const {return log_q;}
 
   private: 
   rfid_reader_f (int sample_rate);

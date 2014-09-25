@@ -4,7 +4,7 @@
 #endif
 
 #include <rfid_command_gate_cc.h>
-#include <gr_io_signature.h>
+#include <gnuradio/io_signature.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
@@ -45,9 +45,9 @@ rfid_make_command_gate_cc (int pw, int T1, int sample_rate)
 }
 
 rfid_command_gate_cc::rfid_command_gate_cc(int pw, int T1, int sample_rate)
-  : gr_block("rfid_command_gate_cc",
-	     gr_make_io_signature (1, 1, sizeof(gr_complex)),
-	     gr_make_io_signature (1, 1, sizeof(gr_complex))),
+  : gr::block("rfid_command_gate_cc",
+	     gr::io_signature::make (1, 1, sizeof(gr_complex)),
+	     gr::io_signature::make (1, 1, sizeof(gr_complex))),
     d_pw(pw),
     d_T1(T1),
     d_sample_rate(sample_rate)
@@ -246,7 +246,7 @@ int rfid_command_gate_cc::general_work(int noutput_items,
     trigger_cycle = false;
     
     if(global_reader_state->cur_cycle < global_reader_state->num_cycles){
-      gr_message_sptr ctrl_msg = gr_make_message(0,
+      gr::message::sptr ctrl_msg = gr::message::make(0,
 					     sizeof(int),
 					     0,
 					     (1) * sizeof(int));

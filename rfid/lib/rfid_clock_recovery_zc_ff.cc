@@ -3,8 +3,8 @@
 #include "config.h"
 #endif
 #include <rfid_clock_recovery_zc_ff.h>
-#include <gr_io_signature.h>
-#include <gri_mmse_fir_interpolator.h>
+#include <gnuradio/io_signature.h>
+#include <gnuradio/filter/mmse_fir_interpolator_ff.h>
 #include <stdexcept>
 #include <float.h>
 #include <string.h>
@@ -34,9 +34,9 @@ is_positive(float x){
 
 
 rfid_clock_recovery_zc_ff::rfid_clock_recovery_zc_ff(int samples_per_pulse, int interp_factor)
-  : gr_block("rfid_clock_recovery_zc_ff", 
-		      gr_make_io_signature(1,1,sizeof(float)),
-		      gr_make_io_signature(1,1,sizeof(float))),
+  : gr::block("rfid_clock_recovery_zc_ff", 
+		      gr::io_signature::make(1,1,sizeof(float)),
+		      gr::io_signature::make(1,1,sizeof(float))),
     d_samples_per_pulse(samples_per_pulse), d_interp_factor(interp_factor)
 {
 

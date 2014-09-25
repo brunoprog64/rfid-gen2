@@ -32,14 +32,14 @@ AM_CPPFLAGS = \
 	$(STD_DEFINES_AND_INCLUDES) \
 	$(PYTHON_CPPFLAGS) \
 	$(CPPUNIT_INCLUDES) \
-	$(GNURADIO_CORE_CPPFLAGS)
+	$(GNURADIO_RUNTIME_CPPFLAGS)
 
 # these are used by both SWIG and CXX
 STD_DEFINES_AND_INCLUDES = \
 	$(DEFINES) \
 	-I$(abs_top_srcdir)/include \
-	-I$(GNURADIO_CORE_INCLUDEDIR) \
-	-I$(GNURADIO_CORE_INCLUDEDIR)/swig
+	-I$(GNURADIO_RUNTIME_INCLUDEDIR) \
+	-I$(GNURADIO_RUNTIME_INCLUDEDIR)/gnuradio/swig
 
 # includes
 modincludedir = $(includedir)/$(modname)

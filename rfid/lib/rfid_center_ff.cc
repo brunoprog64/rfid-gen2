@@ -5,8 +5,8 @@
 #include "config.h"
 #endif
 #include <rfid_center_ff.h>
-#include <gr_io_signature.h>
-#include <gri_mmse_fir_interpolator.h>
+#include <gnuradio/io_signature.h>
+#include <gnuradio/filter/mmse_fir_interpolator_ff.h>
 #include <stdexcept>
 #include <float.h>
 #include <string.h>
@@ -20,9 +20,9 @@ rfid_make_center_ff(int samples_per_pulse)
 }
 
 rfid_center_ff::rfid_center_ff(int samples_per_pulse)
-  : gr_sync_block("rfid_center_ff", 
-		      gr_make_io_signature(1,1,sizeof(float)),
-		      gr_make_io_signature(1,1,sizeof(float))),
+  : gr::sync_block("rfid_center_ff", 
+		      gr::io_signature::make(1,1,sizeof(float)),
+		      gr::io_signature::make(1,1,sizeof(float))),
     d_samples_per_pulse(samples_per_pulse) 
     
 {

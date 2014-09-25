@@ -108,8 +108,8 @@ m4_define([GR_STANDALONE],
   AC_CHECK_PROG([XMLTO],[xmlto],[yes],[])
   AM_CONDITIONAL([HAS_XMLTO], [test x$XMLTO = xyes])
 
-  PKG_CHECK_MODULES(GNURADIO_CORE, gnuradio-core >= 3)
-  LIBS="$LIBS $GNURADIO_CORE_LIBS"
+ PKG_CHECK_MODULES(GNURADIO_RUNTIME, gnuradio-runtime >= 3.7)
+ LIBS="$LIBS $GNURADIO_RUNTIME_LIBS"
 
   dnl Allow user to choose whether to generate SWIG/Python 
   dnl Default is enabled

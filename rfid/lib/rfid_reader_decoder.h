@@ -4,9 +4,9 @@
 #ifndef INCLUDED_RFID_READER_DECODER_H
 #define INCLUDED_RFID_READER_DECODER_H
 
-#include <gr_sync_block.h>
-#include <gr_message.h>
-#include <gr_msg_queue.h>
+#include <gnuradio/sync_block.h>
+#include <gnuradio/message.h>
+#include <gnuradio/msg_queue.h>
 
 
 class rfid_reader_decoder;
@@ -16,7 +16,7 @@ typedef boost::shared_ptr<rfid_reader_decoder> rfid_reader_decoder_sptr;
 rfid_reader_decoder_sptr 
 rfid_make_reader_decoder (float us_per_sample, float tari);
 
-class rfid_reader_decoder : public gr_sync_block 
+class rfid_reader_decoder : public gr::sync_block 
 {
  
  private:
@@ -59,8 +59,8 @@ class rfid_reader_decoder : public gr_sync_block
  
  public:
   ~rfid_reader_decoder();
-  gr_msg_queue_sptr log_q;
-  gr_msg_queue_sptr get_log() const {return log_q;}
+  gr::msg_queue::sptr log_q;
+  gr::msg_queue::sptr get_log() const {return log_q;}
   int work(int noutput_items, 
 	   gr_vector_const_void_star &input_items,
 	   gr_vector_void_star &output_items);

@@ -3,7 +3,7 @@
 #ifndef INCLUDED_rfid_clock_recovery_zc_ff_H
 #define INCLUDED_rfid_clock_recovery_zc_ff_H
 
-#include <gr_block.h>
+#include <gnuradio/block.h>
 
 class gri_mmse_fir_interpolator;
 
@@ -13,7 +13,7 @@ typedef boost::shared_ptr<rfid_clock_recovery_zc_ff> rfid_clock_recovery_zc_ff_s
 rfid_clock_recovery_zc_ff_sptr
 rfid_make_clock_recovery_zc_ff(int samples_per_pulse, int interp_factor);
 
-class rfid_clock_recovery_zc_ff : public gr_block
+class rfid_clock_recovery_zc_ff : public gr::block
 {  
 
   friend rfid_clock_recovery_zc_ff_sptr

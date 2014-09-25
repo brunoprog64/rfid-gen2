@@ -4,9 +4,9 @@
 #ifndef INCLUDED_RFID_COMMAND_GATE_CC_H
 #define INCLUDED_RFID_COMMAND_GATE_CC_H
 
-#include <gr_block.h>
-#include <gr_message.h>
-#include <gr_msg_queue.h>
+#include <gnuradio/block.h>
+#include <gnuradio/message.h>
+#include <gnuradio/msg_queue.h>
 
 #ifndef READER_VARS
 #include "rfid_global_vars.h"
@@ -20,7 +20,7 @@ typedef boost::shared_ptr<rfid_command_gate_cc> rfid_command_gate_cc_sptr;
 rfid_command_gate_cc_sptr 
 rfid_make_command_gate_cc (int pw, int T1, int sample_rate);
 
-class rfid_command_gate_cc : public gr_block 
+class rfid_command_gate_cc : public gr::block 
 {
  
  private:
@@ -49,7 +49,7 @@ class rfid_command_gate_cc : public gr_block
   double d_thresh;            //Amplitude threshold for detecing edges
   double d_min_amp_thresh;    //To filter out nearby readers
 
-  gr_msg_queue_sptr	d_ctrl_out;  //Pipe control messages to reader block.
+  gr::msg_queue::sptr	d_ctrl_out;  //Pipe control messages to reader block.
 
   rfid_command_gate_cc(int pw, int T1, int sample_rate);
   void forecast (int noutput_items, gr_vector_int &ninput_items_required);
@@ -69,7 +69,7 @@ class rfid_command_gate_cc : public gr_block
 		   gr_vector_const_void_star &input_items,
 		   gr_vector_void_star &output_items);
 
-  void	set_ctrl_out(const gr_msg_queue_sptr msgq) { d_ctrl_out = msgq; }
+  void	set_ctrl_out(const gr::msg_queue::sptr msgq) { d_ctrl_out = msgq; }
 
 };
 
