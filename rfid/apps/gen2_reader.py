@@ -3,8 +3,9 @@
 #Modified by: Bruno Espinoza (bruno.espinozaamaya@uqconnect.edu.au)
 
 from gnuradio import gr, gru
-from gnuradio import usrp
+from gnuradio import uhd
 from gnuradio import eng_notation
+from gnuradio import analog,blocks,digital,filter
 from gnuradio.eng_option import eng_option
 from string import split
 from string import strip
@@ -29,20 +30,21 @@ log_file = open(options.log_file, "a")
 class my_top_block(gr.top_block):
     def __init__(self):
         gr.top_block.__init__(self)
-           
-        amplitude = 5000        
+
+        amplitude = 5000
         interp_rate = 256
         dec_rate = 16
         sw_dec = 5
 
         num_taps = int(64000 / ( (dec_rate * 4) * 40 )) #Filter matched to 1/4 of the 40 kHz tag cycle
         taps = [complex(1,1)] * num_taps
-        
-        matched_filt = gr.fir_filter_ccc(sw_dec, taps);  
-          
-        agc = gr.agc2_cc(0.3, 1e-3, 1, 1, 100) 
-     
-        to_mag = gr.complex_to_mag()
+
+        matched_filt = filter.fir_filter_ccc(sw_dec, taps);
+
+        agc = analog.agc2_cc(0.3, 1e-3, 1, 1)
+        agc.set_max_gain(100)
+
+        to_mag = blocks.complex_to_mag()
 
         center = rfid.center_ff(10)
 
@@ -52,50 +54,54 @@ class my_top_block(gr.top_block):
         gain_omega = .25 * gain_mu * gain_mu
         omega_relative_limit = .05
 
-        mm = gr.clock_recovery_mm_ff(omega, gain_omega, mu, gain_mu, omega_relative_limit)
+        mm = digital.clock_recovery_mm_ff(omega, gain_omega, mu, gain_mu, omega_relative_limit)
 
 
-        self.reader = rfid.reader_f(int(128e6/interp_rate)); 
-        
+        self.reader = rfid.reader_f(int(128e6/interp_rate));
+
         tag_decoder = rfid.tag_decoder_f()
-        
+
         command_gate = rfid.command_gate_cc(12, 250, 64000000 / dec_rate / sw_dec)
-        
-        
-        to_complex = gr.float_to_complex()
-        amp = gr.multiply_const_ff(amplitude)
-        
+
+
+        to_complex = blocks.float_to_complex()
+        amp = blocks.multiply_const_ff(amplitude)
+
         #output the TX and RX signals only
-        f_txout = gr.file_sink(gr.sizeof_gr_complex, 'f_txout.out');
-        f_rxout = gr.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
-        
+        f_txout = blocks.file_sink(gr.sizeof_gr_complex, 'f_txout.out');
+        f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
+
 #TX
 		# working frequency at 915 MHz by default and RX Gain of 20
-        freq = options.center_freq #915e6 
-        rx_gain = options.rx_gain #20  
-    
-        tx = usrp.sink_c(fusb_block_size = 512, fusb_nblocks=4)
-        tx.set_interp_rate(256)
-        tx_subdev = (0,0)
-        tx.set_mux(usrp.determine_tx_mux_value(tx, tx_subdev))
-        subdev = usrp.selected_subdev(tx, tx_subdev)
-        subdev.set_enable(True)
-        subdev.set_gain(subdev.gain_range()[2])
-        t = tx.tune(subdev.which(), subdev, freq)
+        freq = options.center_freq #915e6
+        rx_gain = options.rx_gain #20
+
+        tx = uhd.usrp_sink(",".join(("", "")),
+        	uhd.stream_args(cpu_format="fc32",	channels=range(1)))
+        #tx.set_interp_rate(256)
+        #tx_subdev = (0,0)
+        #tx.set_mux(usrp.determine_tx_mux_value(tx, tx_subdev))
+        #subdev = usrp.selected_subdev(tx, tx_subdev)
+        #subdev.set_enable(True)
+        tx.set_gain(tx.get_gain_range()[2], 0)
+        t = tx.set_center_freq(freq, 0)
         if not t:
             print "Couldn't set tx freq"
 #End TX
-             
+
 #RX
-        rx = usrp.source_c(0, dec_rate, fusb_block_size = 512, fusb_nblocks = 4)
-        rx_subdev_spec = (1,0)
-        rx.set_mux(usrp.determine_rx_mux_value(rx, rx_subdev_spec))
-        rx_subdev = usrp.selected_subdev(rx, rx_subdev_spec)
-        rx_subdev.set_gain(rx_gain)
-        rx_subdev.set_auto_tr(False)
-        rx_subdev.set_enable(True)
-        
-        r = usrp.tune(rx, 0, rx_subdev, freq)
+        rx = uhd.usrp_source(",".join(("", "")),
+        	uhd.stream_args(cpu_format="fc32",channels=range(1)) )
+        #rx = usrp.source_c(0, dec_rate, fusb_block_size = 512, fusb_nblocks = 4)
+        #rx_subdev_spec = (1,0)
+        #rx.set_mux(usrp.determine_rx_mux_value(rx, rx_subdev_spec))
+        #rx_subdev = usrp.selected_subdev(rx, rx_subdev_spec)
+        rx_subdev.set_gain(rx_gain, 0)
+        #rx_subdev.set_auto_tr(False)
+        #rx_subdev.set_enable(True)
+
+        #r = usrp.tune(rx, 0, rx_subdev, freq)
+        r = rx.set_center_freq(freq, 0)
 
         self.rx = rx
         if not r:
@@ -112,43 +118,43 @@ class my_top_block(gr.top_block):
         self.connect(rx, matched_filt)
         self.connect(matched_filt, command_gate)
         self.connect(command_gate, agc)
-        self.connect(agc, to_mag) 
+        self.connect(agc, to_mag)
         self.connect(to_mag, center, mm, tag_decoder)
         self.connect(tag_decoder, self.reader, amp, to_complex, tx);
 #################
-		
+
 		#Output dumps for debug
         self.connect(rx, f_rxout);
         self.connect(to_complex, f_txout);
 
 def main():
-    
-   
+
+
     tb = my_top_block()
-    
+
     tb.start()
     while 1:
-        
+
         c = raw_input("'Q' to quit. L to get log.\n")
         if c == "q":
             break
-        
+
         if c == "L" or c == "l":
             log_file.write("T,CMD,ERROR,BITS,SNR\n")
             log = tb.reader.get_log()
             print "Log has %s Entries"% (str(log.count()))
             i = log.count();
-            
-            
+
+
             for k in range(0, i):
                 msg = log.delete_head_nowait()
                 print_log_msg(msg, log_file)
-                
+
     tb.stop()
-    
+
 def print_log_msg(msg, log_file):
     LOG_START_CYCLE, LOG_QUERY, LOG_ACK, LOG_QREP, LOG_NAK, LOG_REQ_RN, LOG_READ, LOG_RN16, LOG_EPC, LOG_HANDLE, LOG_DATA, LOG_EMPTY, LOG_COLLISION, LOG_OKAY, LOG_ERROR = range(15)
- 
+
 
     fRed = chr(27) + '[31m'
     fBlue = chr(27) + '[34m'
@@ -157,17 +163,17 @@ def print_log_msg(msg, log_file):
 
     if msg.type() == LOG_START_CYCLE:
         fields = split(strip(msg.to_string()), " ")
-        print "%s\t Started Cycle" %(fields[-1]) 
+        print "%s\t Started Cycle" %(fields[-1])
         log_file.write(fields[-1] + ",START_CYCLE,0,0,0\n");
 
     if msg.type() == LOG_QUERY:
         fields = split(strip(msg.to_string()), " ")
-        print "%s\t Query" %(fields[-1]) 
+        print "%s\t Query" %(fields[-1])
         log_file.write(fields[-1] + ",QUERY,0,0,0\n");
 
     if msg.type() == LOG_QREP:
         fields = split(strip(msg.to_string()), " ")
-        print "%s\t QRep" %(fields[-1]) 
+        print "%s\t QRep" %(fields[-1])
         log_file.write(fields[-1] + ",QREP,0,0,0\n");
 
     if msg.type() == LOG_ACK:
@@ -180,22 +186,22 @@ def print_log_msg(msg, log_file):
         print "%s\t NAK" %(fields[-1])
         log_file.write(fields[-1] + ",NAK,0,0,0\n");
 
-    
+
     if msg.type() == LOG_RN16:
         fields = split(strip(msg.to_string()), " ")
         rn16 = fields[0].split(",")[0]
         snr = strip(fields[0].split(",")[1])
         tmp = int(rn16,2)
-       
+
         if msg.arg2() == LOG_ERROR:
-            
+
             print "%s\t    %s RN16 w/ Error: %04X%s" %(fields[-1],fRed, tmp, fReset)
             log_file.write(fields[-1] + ",RN16,1," +"%04X" % tmp  + ","+snr + "\n");
         else:
             print "%s\t    %s RN16: %04X%s" %(fields[-1],fBlue, tmp, fReset)
             log_file.write(fields[-1] +",RN16,0," + "%04X" % tmp + "," +snr + "\n");
-        
-        
+
+
     if msg.type() == LOG_EPC:
         fields = split(strip(msg.to_string()), " ")
         epc = fields[0].split(",")[0]
@@ -213,16 +219,14 @@ def print_log_msg(msg, log_file):
     if msg.type() == LOG_EMPTY:
         fields = split(strip(msg.to_string()), " ")
         snr = strip(fields[0])
-        print "%s\t    - Empty Slot - " %(fields[-1]) 
+        print "%s\t    - Empty Slot - " %(fields[-1])
         log_file.write(fields[-1] + ",EMPTY,0,0,"+snr+"\n");
 
     if msg.type() == LOG_COLLISION:
         fields = split(strip(msg.to_string()), " ")
-        print "%s\t    - Collision - " %(fields[-1]) 
+        print "%s\t    - Collision - " %(fields[-1])
         log_file.write(fields[-1] + ",COLLISION,0,0,0\n");
 
 
 if __name__ == '__main__':
     main()
-
-
