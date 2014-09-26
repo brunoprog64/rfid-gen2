@@ -28,8 +28,8 @@ AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
-GR_VERSION
 AM_INIT_AUTOMAKE
+GR_VERSION
 
 dnl ustar required to have pathnames > 99 chars
 _AM_SET_OPTION([tar-ustar])
