@@ -19,19 +19,20 @@ dnl  the Free Software Foundation, Inc., 51 Franklin Street,
 dnl  Boston, MA 02110-1301, USA.
 dnl 
 
-
-AC_INIT
-AC_PREREQ(2.57)
-AC_CONFIG_AUX_DIR([.])	
+AC_INIT([gr-rfid], [0.1])
+AC_PREREQ([2.69])
+AC_CONFIG_SRCDIR([.])
+AC_CONFIG_AUX_DIR([.])
 
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
 
 GR_VERSION
+AM_INIT_AUTOMAKE
+
 dnl ustar required to have pathnames > 99 chars
 _AM_SET_OPTION([tar-ustar])
-AM_INIT_AUTOMAKE(gr-rfid,$RELEASE)
 
 dnl This is kind of non-standard, but it sure shortens up this file :-)
 m4_include([config/gr_standalone.m4])
