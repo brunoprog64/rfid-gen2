@@ -35,6 +35,7 @@ class my_top_block(gr.top_block):
         interp_rate = 256
         dec_rate = 16
         sw_dec = 5
+        samp_rate = 4e6 # corresponds to dec_rate 16. (64M/16)
 
         num_taps = int(64000 / ( (dec_rate * 4) * 40 )) #Filter matched to 1/4 of the 40 kHz tag cycle
         taps = [complex(1,1)] * num_taps
@@ -61,7 +62,7 @@ class my_top_block(gr.top_block):
 
         tag_decoder = rfid.tag_decoder_f()
 
-        command_gate = rfid.command_gate_cc(12, 250, 64000000 / dec_rate / sw_dec)
+        command_gate = rfid.command_gate_cc(12, 250, 64e6 / dec_rate / sw_dec)
 
 
         to_complex = blocks.float_to_complex()
@@ -78,12 +79,14 @@ class my_top_block(gr.top_block):
 
         tx = uhd.usrp_sink(",".join(("", "")),
         	uhd.stream_args(cpu_format="fc32",	channels=range(1)))
+        tx.set_samp_rate(samp_rate/8) # 128M/256
+        tx.set_antenna("TX/RX", 0)
         #tx.set_interp_rate(256)
         #tx_subdev = (0,0)
         #tx.set_mux(usrp.determine_tx_mux_value(tx, tx_subdev))
         #subdev = usrp.selected_subdev(tx, tx_subdev)
         #subdev.set_enable(True)
-        tx.set_gain(tx.get_gain_range()[2], 0)
+        tx.set_gain(tx.get_gain_range().stop(), 0)
         t = tx.set_center_freq(freq, 0)
         if not t:
             print "Couldn't set tx freq"
@@ -92,11 +95,13 @@ class my_top_block(gr.top_block):
 #RX
         rx = uhd.usrp_source(",".join(("", "")),
         	uhd.stream_args(cpu_format="fc32",channels=range(1)) )
+        rx.set_samp_rate(samp_rate)
         #rx = usrp.source_c(0, dec_rate, fusb_block_size = 512, fusb_nblocks = 4)
         #rx_subdev_spec = (1,0)
         #rx.set_mux(usrp.determine_rx_mux_value(rx, rx_subdev_spec))
         #rx_subdev = usrp.selected_subdev(rx, rx_subdev_spec)
-        rx_subdev.set_gain(rx_gain, 0)
+        rx.set_gain(rx_gain, 0)
+        rx.set_antenna("RX2", 0)
         #rx_subdev.set_auto_tr(False)
         #rx_subdev.set_enable(True)
 
