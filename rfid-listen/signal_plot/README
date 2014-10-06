@@ -1,0 +1,22 @@
+GNU-radio file sink blocks generate hexadecimal files where the signal is recorded. Such hex files cannot be directly plotted by tools like gnuplot for istance.
+In this directory you find a ./conv tool which converts hex gnuradio files to text files. 
+Launch:
+
+./conv in_hex_file out_txt_file begin_offset number_of_samples
+  
+where:
+
+- in_hex_file is the gnuradio hex file you want to convert
+- out_txt_file is the output text file
+- begin_offset is the point (in number of samples) of the hex file where you want the conversion starts
+- number_of_samples is the number of samples you want to convert (starting from begin_offset)
+
+At this point you can plot the out_txt_file using gnuplot:
+
+gnuplot
+gnuplot> plot out_txt_file using 1:2 every ::0::number_of_samples with lines
+
+
+Enjoy :)
+
+Danilo De Donno

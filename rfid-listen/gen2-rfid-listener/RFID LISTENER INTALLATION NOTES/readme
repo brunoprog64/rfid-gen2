@@ -1,0 +1,7 @@
+How to compile and install
+
+./bootstrap 				
+./configure --prefix=GNURADIO_DIRECTORY
+make
+sudo make install
+
