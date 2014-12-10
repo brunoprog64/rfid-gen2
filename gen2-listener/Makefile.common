@@ -41,7 +41,8 @@ STD_DEFINES_AND_INCLUDES = \
 grincludedir = $(includedir)/gnuradio
 
 # swig includes 
-swigincludedir = $(grincludedir)/swig
+#swigincludedir = $(grincludedir)/swig
+swigincludedir = $(includedir)/gnuradio/swig
 
 # Install this stuff in the appropriate subdirectory
 # This usually ends up at:

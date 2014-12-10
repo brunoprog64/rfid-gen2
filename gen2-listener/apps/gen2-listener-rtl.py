@@ -18,7 +18,7 @@ from gnuradio import gr, gru
 from gnuradio import eng_option
 from gnuradio.eng_option import eng_option
 from gnuradio import blocks
-from gnuradio import uhd
+import osmosdr #for using the RTL-SDR Dongle
 from gnuradio import filter
 
 from gnuradio import listener #in order to work
@@ -83,20 +83,27 @@ def main():
     parser.add_option("-f", "--freq", type="eng_float", dest="freq", default=915.0, help="set USRP center frequency (provide frequency in MHz)")
     (options, args) = parser.parse_args()	
     
-    rx = uhd.usrp_source(",".join(("", "")),
-        	uhd.stream_args(cpu_format="fc32",channels=range(1)) )
+    #rx = uhd.usrp_source(",".join(("", "")),
+        	#uhd.stream_args(cpu_format="fc32",channels=range(1)) )
     
-    samp_freq = (64 / dec_rate) * 1e6
+    #samp_freq = (64 / dec_rate) * 1e6
+    samp_freq = 2e6 #2 MHz
     freq = options.freq
     freq = freq * 1e6
 		
-    rx.set_samp_rate(samp_rate)
-    rx.set_gain(rx_gain, 0)
-    rx.set_antenna("RX2", 0)
-    r = rx.set_center_freq(freq, 0)
+    #rx.set_samp_rate(samp_rate)
+    #rx.set_gain(rx_gain, 0)
+    #rx.set_antenna("RX2", 0)
+    #r = rx.set_center_freq(freq, 0)
     
-    if not rx:
-        print "Couldn't set LISTENER RX frequency"
+    rx = osmosdr.source()
+    rx.set_sample_rate(samp_rate)
+    rx.set_center_freq(freq, 0)
+    rx.set_gain(rx_gain, 0)
+    
+    
+    #if not rx:
+    #    print "Couldn't set LISTENER RX frequency"
     # END LISTENER HARDWARE SUB-SYSTEM (USRP v.1) 	    
     
     # FILE SOURCE for offline tests (comment previous lines and uncomments this line)
