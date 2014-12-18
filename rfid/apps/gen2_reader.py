@@ -23,9 +23,21 @@ parser = optparse.OptionParser();
 parser.add_option('--f', action="store", dest="center_freq", default="915e6", help="Center Frequency", type="float");
 parser.add_option('--g', action="store", dest="rx_gain", default="20", help="RX Gain", type="float");
 parser.add_option('--l', action="store", dest="log_file", default="log_out.log", help="Log file name");
+parser.add_option('--d', action="store", dest="dump_file", default="none", help="[none|matched|full]");
 options, args = parser.parse_args();
 
 log_file = open(options.log_file, "a")
+dump_type = options.dump_file
+
+if dump_type == "none":
+    print "* Alert: Skipping dumping of the rx block..."
+elif dump_type == "full":
+    print "** Using a full dump of the RX block!!"
+elif dump_type == "matched":
+    print "** Using dump of the match_filter block!!"
+else:
+    print "Unknown dump_type flag!! Set to 'none'"
+    dump_type = 'none'
 
 class my_top_block(gr.top_block):
     def __init__(self):
@@ -62,15 +74,15 @@ class my_top_block(gr.top_block):
 
         tag_decoder = rfid.tag_decoder_f()
 
-        command_gate = rfid.command_gate_cc(12, 250, 64e6 / dec_rate / sw_dec)
+        command_gate = rfid.command_gate_cc(12, 250, int(64e6 / dec_rate / sw_dec))
 
 
         to_complex = blocks.float_to_complex()
         amp = blocks.multiply_const_ff(amplitude)
 
         #output the TX and RX signals only
-        f_txout = blocks.file_sink(gr.sizeof_gr_complex, 'f_txout.out');
-        f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
+        #f_txout = blocks.file_sink(gr.sizeof_gr_complex, 'f_txout.out');
+        #f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
 
 #TX
 		# working frequency at 915 MHz by default and RX Gain of 20
@@ -129,9 +141,16 @@ class my_top_block(gr.top_block):
 #################
 
 		#Output dumps for debug
-        self.connect(rx, f_rxout);
-        self.connect(to_complex, f_txout);
+        
 
+        if dump_type == "matched":
+            f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
+            self.connect(matched_filt, f_rxout)
+        
+        if dump_type == "full":
+            f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
+            self.connect(rx, f_rxout)
+            
 def main():
 
 
