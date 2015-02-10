@@ -3,7 +3,6 @@
 #Modified by: Bruno Espinoza (bruno.espinozaamaya@uqconnect.edu.au)
 
 from gnuradio import gr, gru
-from gnuradio import uhd
 from gnuradio import eng_notation
 from gnuradio import analog,blocks,digital,filter
 from gnuradio.eng_option import eng_option
@@ -15,19 +14,21 @@ import os
 import math
 import rfid
 import optparse
-
+import osmosdr
 
 
 #parser for frequency and other options
 parser = optparse.OptionParser();
-parser.add_option('--f', action="store", dest="center_freq", default="915e6", help="Center Frequency", type="float");
+parser.add_option('--f', action="store", dest="center_freq", default="910e6", help="Center Frequency", type="float");
 parser.add_option('--g', action="store", dest="rx_gain", default="20", help="RX Gain", type="float");
 parser.add_option('--l', action="store", dest="log_file", default="log_out.log", help="Log file name");
 parser.add_option('--d', action="store", dest="dump_file", default="none", help="[none|matched|full]");
+parser.add_option('--s', action="store", dest="device", default="uhd", help="[uhd|bladerf]");
 parser.add_option('--q', action="store", dest="q_value", default="0", help="Q value from 0 to 8");
 parser.add_option('--m', action="store", dest="modul_type", default="1", help="Modulation Type from 0 to 3 -> 0: FM Encoding, 1: Miller M=2, 2: Miller M=4, 3: Miller M=8");
 
-options, args = parser.parse_args();
+
+options, args = parser.parse_args()
 
 log_file = open(options.log_file, "a")
 dump_type = options.dump_file
@@ -43,6 +44,11 @@ elif dump_type == "matched":
 else:
     print "Unknown dump_type flag!! Set to 'none'"
     dump_type = 'none'
+    
+if options.device == "uhd":
+    print "Using USRP devices..."
+else:
+    print "Using bladeRF device..."
 
 modul_msg = ["FM0", "Miller M=2", "Miller M=4", "Miller M=8"];
 
@@ -57,27 +63,26 @@ slots = pow(2,qval);
 print "* Using", modul_msg[mtype], "modulation for tags..."
 print "* Q Value of", str(qval), "so", str(slots), "slots assigned for tags..."
 
-
 class my_top_block(gr.top_block):
     def __init__(self):
         gr.top_block.__init__(self)
 
         amplitude = 5000
-        interp_rate = 256
-        dec_rate = 16
-        sw_dec = 5
+        sw_dec = 5 #For reduce the sample rate after the filtering. (4MS / 5 = 800 KS/s)
         samp_rate = 4e6 # corresponds to dec_rate 16. (64M/16)
 
-        num_taps = int(64000 / ( (dec_rate * 4) * 40 )) #Filter matched to 1/4 of the 40 kHz tag cycle
+        #Filter mathced to 1/4 of 40 KHz tag cycle.
+        #40 KHz = 100 samples, so 1/4 is 25 samples.
+        #num_taps = int(64000 / ( (dec_rate * 4) * 40 )) #Filter matched to 1/4 of the 40 kHz tag cycle
+        num_taps = 25
         taps = [complex(1,1)] * num_taps
 
-        matched_filt = filter.fir_filter_ccc(sw_dec, taps);
+        matched_filt = filter.fir_filter_ccc(sw_dec, taps); 
 
         agc = analog.agc2_cc(0.3, 1e-3, 1, 1)
         agc.set_max_gain(100)
 
         to_mag = blocks.complex_to_mag()
-
         center = rfid.center_ff(10)
 
         omega = 5
@@ -85,11 +90,9 @@ class my_top_block(gr.top_block):
         gain_mu = 0.25
         gain_omega = .25 * gain_mu * gain_mu
         omega_relative_limit = .05
-
+        
+        #clock recovery
         mm = digital.clock_recovery_mm_ff(omega, gain_omega, mu, gain_mu, omega_relative_limit)
-
-
-        #self.reader = rfid.reader_f(int(128e6/interp_rate));
         
         mtype = int(options.modul_type)
         qval = int(options.q_value)
@@ -102,67 +105,66 @@ class my_top_block(gr.top_block):
             qval = 0;
         
         self.reader = rfid.reader_f(int(500e3), mtype, qval)
-
         tag_decoder = rfid.tag_decoder_f()
-
-        command_gate = rfid.command_gate_cc(12, 250, int(800e3))#int(64e6 / dec_rate / sw_dec))
-
+        
+        #The parameters for command_gate_cc are:
+        # - PW: 12 us. (Negative part of the PIE pulses)
+        # - T1: 250 us (Maximium timeout for the tag to reply).
+        # - Sample Rate. (800 KS/s after the matched filter)
+        command_gate = rfid.command_gate_cc(12,250, int(800e3)) #800 KS/s.
 
         to_complex = blocks.float_to_complex()
         amp = blocks.multiply_const_ff(amplitude)
-
-        #output the TX and RX signals only
-        #f_txout = blocks.file_sink(gr.sizeof_gr_complex, 'f_txout.out');
-        #f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
-
 #TX
-		# working frequency at 915 MHz by default and RX Gain of 20
         freq = options.center_freq #915e6
         rx_gain = options.rx_gain #20
-
-        tx = uhd.usrp_sink(",".join(("", "")),
-        	uhd.stream_args(cpu_format="fc32",	channels=range(1)))
-        #tx.set_samp_rate(128e6/256) # 128M/256
-        tx.set_samp_rate(500e3)
-        tx.set_antenna("TX/RX", 0)
-        #tx.set_interp_rate(256)
-        #tx_subdev = (0,0)
-        #tx.set_mux(usrp.determine_tx_mux_value(tx, tx_subdev))
-        #subdev = usrp.selected_subdev(tx, tx_subdev)
-        #subdev.set_enable(True)
-        tx.set_gain(tx.get_gain_range().stop(), 0)
-        t = tx.set_center_freq(freq, 0)
-        if not t:
+        
+        if (options.device == "uhd"):
+            tx = osmosdr.sink("uhd,type=usrp1")
+            tx.set_gain(0, 'DAC-pga') #range -20 to 0.
+            tx.set_antenna('TX/RX')            
+        else:
+            #bladeRF
+            tx = osmosdr.sink("bladerf=0") 
+            tx.set_gain(-6, 'VGA1')
+            tx.set_gain(24, 'VGA2')
+        
+        #Settings for Backscatter = VGA1 = -4 / VGA2 = 20 
+        
+        tx.set_sample_rate(500e3)
+        tx.set_center_freq(freq)
+        
+        if not tx:
             print "Couldn't set tx freq"
+            
+            
 #End TX
 
 #RX
-        rx = uhd.usrp_source(",".join(("", "")),
-        uhd.stream_args(cpu_format="fc32",channels=range(1)) )
-        rx.set_samp_rate(samp_rate)
-        #rx = usrp.source_c(0, dec_rate, fusb_block_size = 512, fusb_nblocks = 4)
-        #rx_subdev_spec = (1,0)
-        #rx.set_mux(usrp.determine_rx_mux_value(rx, rx_subdev_spec))
-        #rx_subdev = usrp.selected_subdev(rx, rx_subdev_spec)
-        rx.set_gain(rx_gain)
-        rx.set_antenna("RX2", 0)
-        #rx_subdev.set_auto_tr(False)
-        #rx_subdev.set_enable(True)
-
-        #r = usrp.tune(rx, 0, rx_subdev, freq)
-        r = rx.set_center_freq(freq, 0)
-
-        self.rx = rx
-        if not r:
+        if (options.device == "uhd"):
+            rx = osmosdr.source("uhd,type=usrp1")
+            rx.set_gain(20, 'PGA0')
+            rx.set_gain(15, 'ADC-pga')
+            rx.set_antenna('RX2')
+        else:
+            #bladeRF
+            rx = osmosdr.source("bladerf=0")
+            rx.set_gain(0, 'LNA')
+            rx.set_gain(5, 'VGA1')
+            rx.set_gain(0, 'VGA2')
+        
+        rx.set_sample_rate(samp_rate)
+        rx.set_center_freq(freq)
+        #rx.set_iq_balance_mode(0, 0)
+        #rx.set_dc_offset_mode(0, 0)        
+        
+        if not rx:
             print "Couldn't set rx freq"
 
 #End RX
-
         command_gate.set_ctrl_out(self.reader.ctrl_q())
         tag_decoder.set_ctrl_out(self.reader.ctrl_q())
-
-
-
+        
 #########Build Graph
         self.connect(rx, matched_filt)
         self.connect(matched_filt, command_gate)
@@ -174,10 +176,10 @@ class my_top_block(gr.top_block):
 
 		#Output dumps for debug
         
-
+        #self.connect(to_complex, f_txout);
         if dump_type == "matched":
-            f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
-            self.connect(matched_filt, f_rxout)
+            f_rxout = blocks.file_sink(gr.sizeof_float, 'f_rxout.out');
+            self.connect(mm, f_rxout)
         
         if dump_type == "full":
             f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');

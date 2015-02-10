@@ -93,6 +93,8 @@ const static char * q_strings[] = {"0000","0001","0010","0011","0100","0101","01
 const static char * opt_q_strings[] = {"0000","0001","0001","0010","0010","0010","0011","0011",
                                        "0011","0011","0011","0011","0100","0100","0100","0100"};
 
+const static char * modul_strings[] = { "00", "01", "10", "11" };
+
 const int delim_width = 12; // usec
 const int pulse_width = 12;
 const int tari_width = 12;
@@ -132,6 +134,8 @@ const int NUM_SAMPLES_PER_PULSE = 10;     //~10
 /* 			      -1,1,1,-1}; */
 
 
+static float fm0_preamble_vec[] = {1,1,1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,-1,-1,-1,-1,1,1,1,1};
+
 static float m8_preamble_vec[] = {1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,
 				  1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,
 				  -1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,
@@ -161,11 +165,19 @@ static float m2_preamble_vec[] = {1,1,-1,-1,1,1,-1,-1,
 //static float m2_data_one_vec[] = {1,-1,-1,1};
 //static float m4_data_one_vec[] = {1,-1,1,-1,-1,1,-1,1};
 //static float m8_data_one_vec[] = {1,-1,1,-1,1,-1,1,-1,-1,1,-1,1,-1,1,-1,1};
+static float fm0_one_vec[] = {1,1,1,1};
 static float m2_data_one_vec[] = {1,1,-1,-1,-1,-1,1,1};
 static float m4_data_one_vec[] = {1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1};
 static float m8_data_one_vec[] = {1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1,-1,-1,1,1};
 
+
+
+
 //lens in pulses (i.e., 1/2 cycle)
+
+const int fm0_preamble_len = 24;
+const int fm0_one_len = 4;
+
 const int m2_one_len = 8;
 const int m4_one_len = 16;
 //const int m4_one_len = 8;

@@ -16,15 +16,15 @@
 
 
 rfid_reader_f_sptr
-rfid_make_reader_f (int sample_rate)
+rfid_make_reader_f (int sample_rate, int modul_type, int q_val)
 {
-  return rfid_reader_f_sptr(new rfid_reader_f (sample_rate));
+  return rfid_reader_f_sptr(new rfid_reader_f (sample_rate, modul_type, q_val));
 } 
 
 
 
 
-rfid_reader_f::rfid_reader_f (int sample_rate)
+rfid_reader_f::rfid_reader_f (int sample_rate, int modul_type, int q_val)
   : gr::block ("reader_f",
 		   gr::io_signature::make (1, 1, sizeof(float)),
 		   gr::io_signature::make (1, 1, sizeof (float))),
@@ -97,9 +97,16 @@ rfid_reader_f::rfid_reader_f (int sample_rate)
    memcpy(d_CMD, CMD, 5);
    char DR[2] = "0";
    memcpy(d_DR, DR, 2);
-   //Force the M2 Modulation scheme.
-   char M[3] = "01";   //char M[3] = "10"
-   memcpy(d_M, M, 3);
+   
+   
+   //choose the Modulation Scheme
+   //char M[3] = "00";
+   
+   if (modul_type > 3)
+    modul_type = 1; //by default Miller M=2.
+   
+   memcpy(d_M, modul_strings[modul_type], 3);
+   
    char tr_ext[2] = "1";
    memcpy(d_tr_ext, tr_ext, 2);
    char sel[3] = "00";
@@ -125,7 +132,13 @@ rfid_reader_f::rfid_reader_f (int sample_rate)
    global_reader_state->num_cycles = READER_NUM_CYCLES; 
    global_reader_state->cur_cycle = 0;
 
-   Q_fp = INIT_QFP;
+    
+   if (q_val > 8)
+    q_val = 0; //only implemented up to 8.
+   
+   //Q_fp = INIT_QFP; 
+   Q_fp = q_val;
+   
    memcpy(d_Q, q_strings[(int)Q_fp], 5);
    collision_threshold = COLLISION_THRESHOLD;
    d_tags_read_in_cycle = 0;
@@ -944,12 +957,16 @@ rfid_reader_f::send_read(){
    }
 
   
-   //if(strcmp(global_reader_state->M, "00") == 0){
-   // global_reader_state->tag_preamble_cor_vec = fm0_preamble;
-   // global_reader_state->tag_preamble_cor_vec_len = len_fm0_preamble;
-   // global_reader_state->tag_one_cor_vec = fm0_one_vec;
-   // global_reader_state->tag_one_cor_vec_len = len_fm0_one;
-   //}
+   /*if(strcmp(d_M, "00") == 0){
+    global_reader_state->tag_preamble_cor_vec = fm0_preamble_vec;
+    global_reader_state->tag_preamble_cor_vec_len = fm0_preamble_len;
+    global_reader_state->tag_one_cor_vec = fm0_one_vec;
+    global_reader_state->tag_one_cor_vec_len = fm0_one_len;
+    global_reader_state->num_pulses_per_bit = 2;
+    global_reader_state->num_samples_per_bit = global_reader_state->num_pulses_per_bit * global_reader_state->num_samples_per_pulse; 
+   }*/
+   //FM0 Modulation
+   
    if(strcmp(d_M, "11") == 0){
      global_reader_state->tag_preamble_cor_vec = m8_preamble_vec;
      global_reader_state->tag_preamble_cor_vec_len = m8_preamble_len;

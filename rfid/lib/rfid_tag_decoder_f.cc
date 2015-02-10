@@ -108,7 +108,8 @@ int rfid_tag_decoder_f::general_work(int noutput_items,
 	d_preamble_offset++;
       }
 
-
+    //printf("Debug: score info is %f... and samples processed is %d\n", score, d_samples_processed);
+    
       //2 * because MM outputs two samples per symbol, as it is configured. 
       if(d_samples_processed > 2 * (global_reader_state->num_pulses_per_bit * 
 	                      (global_reader_state->num_bits_in_preamble + 
@@ -124,7 +125,7 @@ int rfid_tag_decoder_f::general_work(int noutput_items,
 	d_ctrl_out->insert_tail(ctrl_msg);
 	d_samples_processed = 0;
 	out[written] = 5;
-
+    //printf("* Preamble no detected... skipping...\n");    
       }
         
     }
