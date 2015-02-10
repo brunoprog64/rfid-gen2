@@ -178,8 +178,8 @@ class my_top_block(gr.top_block):
         
         #self.connect(to_complex, f_txout);
         if dump_type == "matched":
-            f_rxout = blocks.file_sink(gr.sizeof_float, 'f_rxout.out');
-            self.connect(mm, f_rxout)
+            f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
+            self.connect(matched_filt, f_rxout)
         
         if dump_type == "full":
             f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
