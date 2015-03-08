@@ -16,15 +16,15 @@
 
 
 rfid_reader_f_sptr
-rfid_make_reader_f (int sample_rate, int modul_type, int q_val)
+rfid_make_reader_f (int sample_rate, int modul_type, int q_val, int ncycles, int nrounds)
 {
-  return rfid_reader_f_sptr(new rfid_reader_f (sample_rate, modul_type, q_val));
+  return rfid_reader_f_sptr(new rfid_reader_f (sample_rate, modul_type, q_val, ncycles, nrounds));
 } 
 
 
 
 
-rfid_reader_f::rfid_reader_f (int sample_rate, int modul_type, int q_val)
+rfid_reader_f::rfid_reader_f (int sample_rate, int modul_type, int q_val, int ncycles, int nrounds)
   : gr::block ("reader_f",
 		   gr::io_signature::make (1, 1, sizeof(float)),
 		   gr::io_signature::make (1, 1, sizeof (float))),
@@ -127,9 +127,9 @@ rfid_reader_f::rfid_reader_f (int sample_rate, int modul_type, int q_val)
    //   gen_read_cmd();
 
 
-   global_reader_state->num_rounds = READER_NUM_ROUNDS;
+   global_reader_state->num_rounds = nrounds; //READER_NUM_ROUNDS;
    
-   global_reader_state->num_cycles = READER_NUM_CYCLES; 
+   global_reader_state->num_cycles = ncycles; //READER_NUM_CYCLES; 
    global_reader_state->cur_cycle = 0;
 
     

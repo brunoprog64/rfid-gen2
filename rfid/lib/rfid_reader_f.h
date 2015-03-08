@@ -12,11 +12,11 @@ class rfid_reader_f;
 typedef boost::shared_ptr<rfid_reader_f> rfid_reader_f_sptr;
 
 rfid_reader_f_sptr
-rfid_make_reader_f (int sample_rate, int modul_type, int q_val);
+rfid_make_reader_f (int sample_rate, int modul_type, int q_val, int ncycles, int nrounds);
 
 class rfid_reader_f : public gr::block {
   friend rfid_reader_f_sptr 
-  rfid_make_reader_f (int sample_rate, int modul_type, int q_val);
+  rfid_make_reader_f (int sample_rate, int modul_type, int q_val, int ncycles, int nrounds);
   
 
   
@@ -76,7 +76,7 @@ class rfid_reader_f : public gr::block {
   gr::msg_queue::sptr get_log() const {return log_q;}
 
   private: 
-  rfid_reader_f (int sample_rate, int modul_type, int q_val);
+  rfid_reader_f (int sample_rate, int modul_type, int q_val, int ncycles, int nrounds);
   void gen_query_cmd();
   void gen_qrep_cmd();
   void gen_nak_cmd();
