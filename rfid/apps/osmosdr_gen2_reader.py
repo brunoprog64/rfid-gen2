@@ -26,6 +26,8 @@ parser.add_option('--d', action="store", dest="dump_file", default="none", help=
 parser.add_option('--s', action="store", dest="device", default="uhd", help="[uhd|bladerf]");
 parser.add_option('--q', action="store", dest="q_value", default="0", help="Q value from 0 to 8");
 parser.add_option('--m', action="store", dest="modul_type", default="1", help="Modulation Type from 0 to 3 -> 0: FM Encoding, 1: Miller M=2, 2: Miller M=4, 3: Miller M=8");
+parser.add_option('--c', action="store", dest="cycles_num", default="5", help="Number of Reader Cycles (def. 5)");
+parser.add_option('--r', action="store", dest="round_num", default="10", help="Number of Rounds per Cycle (def. 10)");
 
 
 options, args = parser.parse_args()
@@ -34,6 +36,8 @@ log_file = open(options.log_file, "a")
 dump_type = options.dump_file
 mtype = int(options.modul_type)
 qval = int(options.q_value)
+n_cycle = int(options.cycles_num)
+n_round = int(options.round_num)
 
 if dump_type == "none":
     print "* Alert: Skipping dumping of the rx block..."
@@ -62,6 +66,8 @@ slots = pow(2,qval);
 
 print "* Using", modul_msg[mtype], "modulation for tags..."
 print "* Q Value of", str(qval), "so", str(slots), "slots assigned for tags..."
+print "* Reader using", str(n_cycle), "cycles with", str(n_round), "rounds per cycle..."
+
 
 class my_top_block(gr.top_block):
     def __init__(self):
@@ -104,7 +110,10 @@ class my_top_block(gr.top_block):
         if qval > 8 or qval < 0:
             qval = 0;
         
-        self.reader = rfid.reader_f(int(500e3), mtype, qval)
+        n_cycle = int(options.cycles_num)
+        n_round = int(options.round_num)
+        
+        self.reader = rfid.reader_f(int(500e3), mtype, qval, n_cycle, n_round)
         tag_decoder = rfid.tag_decoder_f()
         
         #The parameters for command_gate_cc are:
@@ -126,7 +135,7 @@ class my_top_block(gr.top_block):
         else:
             #bladeRF
             tx = osmosdr.sink("bladerf=0") 
-            tx.set_gain(-6, 'VGA1')
+            tx.set_gain(-4, 'VGA1')
             tx.set_gain(24, 'VGA2')
         
         #Settings for Backscatter = VGA1 = -4 / VGA2 = 20 
@@ -151,7 +160,7 @@ class my_top_block(gr.top_block):
             rx = osmosdr.source("bladerf=0")
             rx.set_gain(0, 'LNA')
             rx.set_gain(5, 'VGA1')
-            rx.set_gain(0, 'VGA2')
+            rx.set_gain(5, 'VGA2')
         
         rx.set_sample_rate(samp_rate)
         rx.set_center_freq(freq)
@@ -177,9 +186,11 @@ class my_top_block(gr.top_block):
 		#Output dumps for debug
         
         #self.connect(to_complex, f_txout);
-        if dump_type == "matched":
+        if dump_type == "matched": 
             f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
             self.connect(matched_filt, f_rxout)
+            #f_rxout = blocks.file_sink(gr.sizeof_float, 'f_rxout.out');
+            #self.connect(mm, f_rxout)
         
         if dump_type == "full":
             f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');

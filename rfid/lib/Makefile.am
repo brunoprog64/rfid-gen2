@@ -50,7 +50,7 @@ libgnuradio_rfid_la_SOURCES = \
 	rfid_reader_f.cc
 
 libgnuradio_rfid_la_LIBADD = \
-	$(GNURADIO_RUNTIME_LA)
+	$(GNURADIO_CORE_LA)
 
 libgnuradio_rfid_la_LDFLAGS = \
 	$(NO_UNDEFINED)
