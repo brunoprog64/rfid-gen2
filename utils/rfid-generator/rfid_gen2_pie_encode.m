@@ -1,10 +1,10 @@
 function [y] = rfid_gen_pie_encode(in_bits, rfid_config)
 
 one_samp = rfid_config(1);
-tari_samp = rfid_config(2);
+pw_samp = rfid_config(2);
 
-pie_one = [ones(1,one_samp) zeros(1,tari_samp)];
-pie_zero = [ones(1,tari_samp) zeros(1,tari_samp)];
+pie_one = [ones(1,one_samp) zeros(1,pw_samp)];
+pie_zero = [ones(1,pw_samp) zeros(1,pw_samp)];
 
 pie_enc = [];
 

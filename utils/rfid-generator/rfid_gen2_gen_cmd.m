@@ -16,7 +16,7 @@ switch cmd_type
         tmp = [1 0 0 0 dr modul trext sel session target q_val];
         %generate the CRC
         crc = rfid_gen2_crc(tmp);
-        qry_bits = [1 0 0 0 tmp crc];
+        qry_bits = [tmp crc];
         out_cmd = rfid_gen2_pie_encode(qry_bits, rfid_params);
     case 'ACK'
         rn16_no = args(1); %the arg is the decoded RN16

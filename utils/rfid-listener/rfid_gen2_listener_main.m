@@ -13,13 +13,16 @@
 clear;
 close all;
 
-    %load(filename);
+%load(filename);
 %OR: rfid_signal = read_complex_binary(filaname)
 
 
-rfid_signal = read_complex_binary('../rx_dump/clean1_tag_rfant.out');
+rfid_signal = read_complex_binary('../rfid-generator/rx_gen_signal.out');
 %rfid_signal = rfid_signal(1.4e5:1.70e5);
 %rfid_signal = rfid_signal(1.5255e5+20:1.61e5);
+
+% load('rx_gen_signal.mat');
+% rfid_signal = out_signal;
 
 %figure
 %plot(abs(rfid_signal));
@@ -127,7 +130,20 @@ while (~is_signal_end)
                         modul_str = 'Miller M=8';
                     end
                     
-                    tag_config(1) = round(tag_srate);
+                    div = power(2, modul_type)*2; %to round the sampling rate to a valid value
+                    %try to make the numbers divisible
+                    tsrate = round(tag_srate);
+                    
+                    if (mod(tsrate, div) ~= 0)
+                        divr = fix(tsrate / div);
+                        divm = mod(tsrate , div);
+                        
+                        tsrate = tsrate - divm;
+                        
+                        fprintf('[rfid-listener]: Invalid Sampling rate of %d samples... rounding to %d samples...\n', round(tag_srate), tsrate);
+                    end
+                    
+                    tag_config(1) = round(tsrate);
                     
                     fprintf('[rfid_listener]: Tag Encoding detected to be %s encoding...\n', modul_str);
                     fprintf('[rfid_listener]: Tag decodal... sample rate estimated at %d samples...\n', tag_srate);
