@@ -32,28 +32,25 @@ end
 %there are tags to decode
 tag_delay = randi(t1_value, 1, length(tag_idx)); %delay for tags
 
-t_len = 1800*1e-6*Fs;
-tag_out = ones(1,t_len) * -1;
-lzeros = 1;
+
 
 %calculate the sample rate in samples
 srate_or = round((1 / base_freq)*Fs);
-div = power(2, modul_type)*2;
+srate = srate_or * (power(2,modul_type));
 
-if (mod(srate_or, div) ~= 0)
-    %divr = fix(srate_or / div);
-    divm = mod(srate_or , div);
-    tsrate = srate_or - divm;                    
-    fprintf('[rfid-listener]: Invalid Sampling rate of %d samples... rounding to %d samples...\n', round(srate_or), tsrate);
-end
 
-for i=1:no_tags %length(tag_delay)
+t_len = 50*srate;
+tag_out = ones(1,t_len) * -1;
+lzeros = 1;
+
+for i=1:length(tag_delay)
     rn16_bits = de2bi(tag_rn16(i),16,'left-msb'); %the bits of the RN16
+    rn16_bits = [rn16_bits 1]; %pad the 1 bit for end
     %correct the samp_rate
-    srate = 40;
+
     tg_res = rfid_gen2_tag_encode(rn16_bits, tr_pream, modul_type, srate);
     
-    t_out = [zeros(1, tag_delay(i)+80) tg_res];
+    t_out = [zeros(1, tag_delay(i)) tg_res];
     lzeros = length(t_out);
     
     if (length(t_out) > lzeros)

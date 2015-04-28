@@ -15,21 +15,28 @@ end
 %the approach is to decode by correlation
 fm0_preamble_bits = [1 1 -1 1 -1 -1 1 -1 -1 -1 1 1];
 pream_bits_m2 = [1 -1 1 -1 1 -1 -1 1 -1 1 -1 1 -1 1 1 -1 1 -1 -1 1 -1 1 1 -1];
+pream_bits_m4 = [1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 -1 1 -1 1 1 -1 1 -1 1 -1 1 -1 -1 1 -1 1 1 -1 1 -1 1 -1 1 -1 -1 1 -1 1 -1 1 -1 1 1 -1 1 -1];
+pream_bits_m8 = [1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 1 -1 1 -1 1 -1 1 -1];
 
-fm0_zero_mask_bits = [1 1];
+
+fm0_zero_mask_bits = [1 -1];
 m2_zero_mask_bits = [1 -1 1 -1];
+m4_zero_mask_bits = [1 -1 1 -1 1 -1 1 -1];
+m8_zero_mask_bits = [1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1 1 -1];
 
-fm0_bit_mask_bits = [1 -1];
+fm0_bit_mask_bits = [1 1];
 m2_bit_mask_bits = [1 -1 -1 1];
+m4_bit_mask_bits = [1 -1 1 -1 -1 1 -1 1];
+m8_bit_mask_bits = [1 -1 1 -1 1 -1 1 -1 -1 1 -1 1 -1 1 -1 1];
 
-if (length(rx_signal) == 0)
+if (isempty(rx_signal) == 1)
   error('Need data to decode!!!');
 end
 
 %TODO: M=2 and M=4
-if (modul_type > 1)
-  error('Miller M=4 and M=8 not implemented yet!!');
-end
+% if (modul_type > 1)
+%   error('Miller M=4 and M=8 not implemented yet!!');
+% end
 
 %check if the signal is valid
 if ~(min(rx_signal) < 0 && max(rx_signal) > 0)
@@ -51,6 +58,16 @@ elseif (modul_type == 1) %M=2
   one_bits = m2_bit_mask_bits;
   zero_bits = m2_zero_mask_bits;
   div_value = 4;
+elseif (modul_type == 2)
+  preamble_bits = pream_bits_m4;
+  one_bits = m4_bit_mask_bits;
+  zero_bits = m4_zero_mask_bits;
+  div_value = 8;
+elseif (modul_type == 3)
+  preamble_bits = pream_bits_m8;
+  one_bits = m8_bit_mask_bits;
+  zero_bits = m8_zero_mask_bits;
+  div_value = 16;
 end
 
 %generate the preamble bit mask
@@ -82,7 +99,7 @@ for i=1:length(rx_signal)-length(tag_preamble_mask)
   total_pwr=sum(abs(fsync_rx));
   score= abs(tmp) /total_pwr;
   
-  if (score > 0.8)
+  if (score > 0.9)
     deco_pos = (i-1) + length(tag_preamble_mask);
     pream_pos = i;
     fprintf('[rfid_listener]: Tag preamble detected at %d with score %f...\n', i, score);
@@ -127,7 +144,7 @@ for i=deco_pos:samp_rate:length(rx_signal)
     deco_bits = [deco_bits 0];
   end
   
-  %fprintf('[rfid_decoder]: Score for 1: %f / Score for 0: %f...\n', score_one, score_zero);
+  fprintf('[rfid_decoder]: Score for 1: %f / Score for 0: %f...\n', score_one, score_zero);
   
   no_bits_deco = no_bits_deco - 1;
   

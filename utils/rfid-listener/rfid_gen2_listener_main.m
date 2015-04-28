@@ -130,7 +130,7 @@ while (~is_signal_end)
                         modul_str = 'Miller M=8';
                     end
                     
-                    div = power(2, modul_type)*2; %to round the sampling rate to a valid value
+                    div = power(2, cmd_args(3))*2; %to round the sampling rate to a valid value
                     %try to make the numbers divisible
                     tsrate = round(tag_srate);
                     
@@ -185,7 +185,7 @@ while (~is_signal_end)
             %TODO: if a collision exists, then apply the FastICA???
             
             %decode the tag
-            rn16_deco_bits = rfid_gen2_tag_decode(tag_block, tag_config(2), tag_config(1));
+            rn16_deco_bits = rfid_gen2_tag_decode(tag_block, tag_config(3), tag_config(1));
             
             if (isempty(rn16_deco_bits) == 0)
                 raw_tag_bits = sprintf('%d ', rn16_deco_bits(1:end));
@@ -214,7 +214,7 @@ while (~is_signal_end)
                 rn16_deco_bits = rn16_deco_bits(1:end-1); %drop the EOF sign
                 g = sprintf('%d ', rn16_deco_bits);
                 fprintf(' -> Decoded bits: [%s\b]...\n', g);
-                rn16_tag_num = bi2de(rn16_deco_bits, 'left-msb');
+                rn16_tag_num = bi2de(rn16_deco_bits, 'right-msb');
                 fprintf('[rfid_listener]: Tag Backscatter decoded. RN16 is %d...\n', rn16_tag_num);
                 status = 5; %go to decode pie
                 %continue;
