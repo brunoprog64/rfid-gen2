@@ -19,15 +19,15 @@ if (tari_nominal == 1)
 end
     
 %tag config
-q_val = 0; %Q value (No. slots is 2^q)
+q_val = 3; %Q value (No. slots is 2^q)
 max_rounds = 5; %max of query in the casse of Q > 0. (Overrides the Q)
-no_tags = 1; %number of tags
-modul_type = 3; %Type of Modulation (FM0, Miller 2, 4, 8)
+no_tags = 2; %number of tags
+modul_type = 1; %Type of Modulation (FM0, Miller 2, 4, 8)
 tr_ext = 1; %use or not the extended preamble
 dr_f = 0; %DR factor (0 = 8 or 1 = 64/3)
 
 %rfid reader config
-Fs = (800e3); %sampling rate (in Hz)
+Fs = (8e5); %sampling rate (in Hz)
 pwr_off_per = 1200; %in us (Power Down)
 tari_value = 24; %in us (Tari goes from 6.25us to 25 us)
 one_symbol_val = 2; %in Taris (Length of 1-PIE bit) (From 1.5 to 2 Tari)
@@ -170,7 +170,7 @@ for i=1:q_slots
         if (q_slots > 1)
             qrep_msg = rfid_gen2_gen_cmd('QUERYREP', 0, rfid_config) - 1;
             qrep_rx = [pie_preamble qrep_msg];
-            tag_rx = [tag_rx ack_msg zeros(1,t1_sampl) qrep_rx zeros(1,t1_sampl)]; %just the tag
+            tag_rx = [tag_rx qrep_rx zeros(1,t1_sampl)]; %just the tag
         end
     else
         tag_rx = [tag_rx modul_tag];

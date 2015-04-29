@@ -144,7 +144,7 @@ for i=deco_pos:samp_rate:length(rx_signal)
     deco_bits = [deco_bits 0];
   end
   
-  fprintf('[rfid_decoder]: Score for 1: %f / Score for 0: %f...\n', score_one, score_zero);
+  %fprintf('[rfid_decoder]: Score for 1: %f / Score for 0: %f...\n', score_one, score_zero);
   
   no_bits_deco = no_bits_deco - 1;
   

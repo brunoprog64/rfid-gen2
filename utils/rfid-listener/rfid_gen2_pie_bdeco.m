@@ -4,7 +4,7 @@ function [cmd_type, cmd_args] = rfid_gen2_pie_bdeco(bits_deco, tr_val, Fs)
 cmd_type = 'UKW';
 cmd_args = [];
 
-if (length(bits_deco) < 5) %min bits for a command are 4 bits.
+if (length(bits_deco) < 4) %min bits for a command are 4 bits.
     return;
 end
 

@@ -63,5 +63,5 @@ end
 
 %count the zeros
 
-tag_out = [tag_out(1:lzeros) ones(1,200*1e-6*Fs)*-1];
+tag_out = [tag_out(1:lzeros) ones(1,round(200*1e-6*Fs))*-1];
 y = (tag_out + 1) * tag_amp;

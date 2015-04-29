@@ -27,7 +27,7 @@ rfid_signal = read_complex_binary('../rfid-generator/rx_gen_signal.out');
 %figure
 %plot(abs(rfid_signal));
 
-Fs = 800e3; %800 KS.
+Fs = 8e5; %800 KS.
 wnd_hist_size = 1500; %1500 uS ~ samples processed per block. (Change accordingly)
 wnd_hist_block = zeros(1,wnd_hist_size);
 
@@ -77,7 +77,7 @@ while (~is_signal_end)
             if (gtari > 0)
                 reader_config(2:end) = [tari, rt, tr, pv Fs];
                 curr_pos = (curr_pos - wnd_hist_size) + pos - rt;
-                wnd_hist_size = 22*pv; %QUERY has 22 symbols.
+                wnd_hist_size = 32*pv; %QUERY has 22 symbols.
                 status = 2;
 
                 fprintf('[rfid_listener]: RFID configuration found!\n');
@@ -161,6 +161,14 @@ while (~is_signal_end)
                     status = 5;
                     wnd_hist_size = 4*1e-3*Fs; %big window for the EPC.
                 end
+                
+                
+                if (strcmp(cmd_type, 'QREP') == 1)
+                    %go to the next tag decodal
+                    tag_block = [];
+                    status = 3;
+                end
+                
             end
         case 3 %store all the samples in a slot to feed the tag_decoder
             for i=1:length(wnd_hist_block)
@@ -178,7 +186,7 @@ while (~is_signal_end)
                 end
             end
         case 4 %tag decodal
-            wnd_hist_size = 500; %enable the sample processing
+            wnd_hist_size = 1500; %enable the sample processing
             %TODO: detect if a collision exists
             %detect_collision()????
             
@@ -288,7 +296,8 @@ while (~is_signal_end)
                 fprintf('[rfid_listener]: PIE Frame-Sync detected...!!\n');
                 status = 2;
                 curr_pos = (curr_pos - wnd_hist_size) + sum(r_lengths(1:2));
-                wnd_hist_size = 800;
+                %wnd_hist_size = 800;
+                wnd_hist_size = 26*pv; %ACK has 16 symbols.
                 continue;
             end
         otherwise
