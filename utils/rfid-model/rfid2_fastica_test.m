@@ -8,13 +8,15 @@
 close all;
 clear;
 
+addpath('fastica-25');
+
 no_tags_emul = 2;
 rn16_values = zeros(1,no_tags_emul);
 modul_type = 1; %Miller M=2
 s_rate = 20;
-awgn_level = 17;
+awgn_level = 170;
 
-tmp = rfid_gen2_tag_encode(ones(1,16),modul_type,s_rate);
+tmp = rfid_gen2_tag_encode(ones(1,16),0, modul_type,s_rate);
 m_len = length(tmp);
 
 modul_vectors = zeros(length(rn16_values), m_len + 100);
@@ -22,8 +24,8 @@ modul_vectors = zeros(length(rn16_values), m_len + 100);
 rn16_values = randi(power(2,16)-1, 1, no_tags_emul); %tags generate random number of 16 bits.
 %genereate everything
 for i=1:length(rn16_values)
-  bin_vec = de2bi(rn16_values(i),16); #MSB first.
-  tmp = rfid_gen2_tag_encode(bin_vec, modul_type, s_rate);
+  bin_vec = de2bi(rn16_values(i),16); %MSB first.
+  tmp = rfid_gen2_tag_encode(bin_vec, 0, modul_type, s_rate);
   tmp = [zeros(1,50) tmp zeros(1,50)];
   tmp = awgn(tmp, awgn_level);
   modul_vectors(i,:) = tmp;
@@ -37,7 +39,7 @@ end
 %Model a simple delay.
 for i=1:no_tags_emul
     tmp = modul_vectors(i,:).';
-    tmp = circshift(tmp, randi(50)).';
+    tmp = circshift(tmp, randi(20)).';
     modul_vectors(i,:) = tmp;
 end
 
@@ -77,7 +79,7 @@ end
 fprintf('Validating model...\n');
 
 for i=1:no_tags_emul
-  fprintf("Tag No. %d\n",i);
+  fprintf('Tag No. %d\n',i);
   tmp = modul_vectors(i,:);
   tmp_bits = rfid_gen2_tag_decode(tmp, modul_type, s_rate);
   tmp_dec = bi2de(tmp_bits, 'left-msb');
@@ -89,5 +91,5 @@ for i=1:no_tags_emul
   tmp_dec = bi2de(tmp_bits,'left-msb');
   fprintf(' -> ICA RN16: %d\n', tmp_dec);
   
-  fprintf("\n");
+  fprintf('\n');
 end
