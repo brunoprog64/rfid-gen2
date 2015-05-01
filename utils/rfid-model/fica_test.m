@@ -3,7 +3,7 @@ close all;
 
 addpath('fastica-25');
 
-Fs = 200;
+Fs = 2000;
 t = 0:1/Fs:1;
 t = t(1:end-1);
 f = 20;
@@ -20,7 +20,7 @@ y_rx_sig = [y_sw ; y_sq ; y_saw];
 y_rx_sig = awgn(y_rx_sig, 44, 'measured');
 
 y_rx_obs = m_matrix.' * y_rx_sig;
-y_rx_ica = fastica(y_rx_obs, 'numOfIC', 3, 'approach', 'symm');
+y_rx_ica = fastica(y_rx_obs, 'numOfIC', 3, 'approach', 'symm', 'verbose', 'off');
 
 subplot(3,1,1);
 plot(y_rx_ica(1,:));

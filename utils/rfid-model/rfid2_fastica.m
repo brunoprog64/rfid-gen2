@@ -14,9 +14,9 @@ addpath('fastica-25');
 no_tags_emul = 2;
 no_antennas = 2;
 pream_ex = 1;
-modul_type = 0; %Miller M=2
+modul_type = 1; %Miller M=2
 s_rate_cycle = 20;
-awgn_level = 12;
+awgn_level = 20;
 t1_value_sampl = 400;
 
 s_rate = (power(2,modul_type)*2)*s_rate_cycle;
@@ -62,7 +62,13 @@ for i=1:no_antennas
     rx_mixed(i,:) = tmp_value;
 end
 
-y_ica = fastica(abs(rx_mixed),'approach', 'symm');
+figure
+for i=1:no_antennas
+    subplot(no_antennas,1,i)
+    plot(abs(rx_mixed(1,:)))
+end
+
+y_ica = fastica(abs(rx_mixed),'approach', 'symm', 'verbose', 'off');
 
 reco_fica = zeros(1, no_tags_emul);
 reco_fica_idx = 1;
@@ -90,16 +96,25 @@ for i=1:size(y_ica,1)
             reco_fica_idx = reco_fica_idx + 1;
             break;
         end
+        
+        if (k == no_tags_emul)
+            fprintf(' -> ICA recovered value %d DO NOT match with RN16 originals...\n', rn16_no);
+        end
+        
     end
     
-    if (k == no_tags_emul)
-        fprintf(' -> ICA recovered value %d DO NOT match with RN16 originals...\n', rn16_no);
-    end
+    
     
     if (rn16(end) ~= 1)
         fprintf(' -> [rfid-decoder]: Invalid RFID signal. Unexpected end!!\n');
     end
     
+end
+
+figure
+for i=1:no_antennas
+    subplot(no_antennas,1,i)
+    plot((y_ica(i,:)))
 end
 
 fprintf('\nOriginal RN16 numbers:\n');

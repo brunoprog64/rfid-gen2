@@ -9,7 +9,7 @@ clear;
 close all;
 
 %main config
-main_snr = 50;
+main_snr = 25;
 main_amp = 5;
 tag_amp = 0.06; %range (0.01 -> 0.1 only)
 tari_nominal = 0; %if 0, the values for RTCAL and TRCAL are given in %us, if set in 1 values are set referent to Tari and RTCAL.
@@ -19,9 +19,9 @@ if (tari_nominal == 1)
 end
     
 %tag config
-q_val = 3; %Q value (No. slots is 2^q)
+q_val = 0; %Q value (No. slots is 2^q)
 max_rounds = 5; %max of query in the casse of Q > 0. (Overrides the Q)
-no_tags = 2; %number of tags
+no_tags = 1; %number of tags
 modul_type = 1; %Type of Modulation (FM0, Miller 2, 4, 8)
 tr_ext = 1; %use or not the extended preamble
 dr_f = 0; %DR factor (0 = 8 or 1 = 64/3)
@@ -78,6 +78,7 @@ trcal_samp = round(trcal_check_val*1e-6*Fs) - pw_samp; %positive block of TR
 t1_sampl = round(t1_value*1e-6*Fs);
 
 fprintf('[rfid-generator]: Tari samples: %d / PW samples: %d \n * RTCAL samples: %d / TRCAL Samples: %d \n * T1 samples: %d...\n', tari_samp, pw_samp, rtcal_samp, trcal_samp, t1_sampl);
+fprintf('[rfid-generator]: Tari uS: %.2f / PW uS: %.2f \n * RTCAL uS: %.2f / TRCAL uS: %.2f \n * T1 uS: %.2f...\n', tari_value, tari_value/2, rtcal_value, trcal_value, t1_value);
 
 config_signal = [zeros(1,pwr_off_samp) ones(1,pwr_up_samp) zeros(1,delim_samp)];
 config_signal = [config_signal ones(1,pw_samp) zeros(1,pw_samp) ones(1,rtcal_samp)];
@@ -122,7 +123,7 @@ fprintf('[rfid-generator]: Samples per Tag cycle: %d samples...\n', round((1/tag
 qry_cmd = rfid_gen2_gen_cmd('QUERY', qry_args, rfid_config);
 
 %build the tag parameters
-tag_slot = randi(power(2,q_val+1), 1, no_tags);
+tag_slot = randi(power(2,q_val), 1, no_tags);
 tag_rn16 = randi(power(2,16), 1, no_tags);
 
 %if we use a Q > 0 do the multi_tag response
@@ -198,10 +199,13 @@ out_signal = [config_signal qry_cmd tag_rx zeros(1,pwr_off_samp/2)] * main_amp;
 phaoff = (pmax-pmin).*rand(1,1) + pmin;
 out_signal = out_signal .* exp(-1i*phaoff);
 out_signal = awgn(out_signal, main_snr);
+out_signal = out_signal / max(out_signal);
+out_signal = out_signal * 0.75;
 
 plot(abs(out_signal));
 
 write_complex_binary(out_signal, 'rx_gen_signal.out');
 fprintf('Written the file as: rx_gen_signal.out!!!\n');
 
-
+fprintf('RN16 values created are:')
+disp(tag_rn16)

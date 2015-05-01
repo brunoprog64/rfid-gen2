@@ -1,4 +1,4 @@
-function [deco_bits] = rfid_gen2_pie_parser(rx_signal, reader_config)
+function [deco_bits, last_redg] = rfid_gen2_pie_parser(rx_signal, reader_config)
 
 thres = reader_config(1);
 rtcal =  reader_config(3);
@@ -30,9 +30,12 @@ for i = 1:length(rx_signal)-1
     end
 end
 
+last_redg = 0;
+
 %check the output
 if (length(deco_bits) > 1)
     deco_bits = deco_bits(2:end);
+    last_redg = rise_edge(end) + 1; %last rising edge
 else
     deco_bits = 9; %non decodable.
 end

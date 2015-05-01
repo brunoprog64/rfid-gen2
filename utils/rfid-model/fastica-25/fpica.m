@@ -334,7 +334,7 @@ if approachMode == 1,
       return;
     end
     
-    if (interruptible & g_FastICA_interrupt)
+    if (interruptible && g_FastICA_interrupt)
       if b_verbose 
         fprintf('\n\nCalculation interrupted by the user\n');
       end

@@ -16,16 +16,14 @@ close all;
 %load(filename);
 %OR: rfid_signal = read_complex_binary(filaname)
 
+%rfid_signal = read_complex_binary('../rfid-generator/rx_gen_signal.out');
+rfid_signal = read_complex_binary('f_rxout.out');
+rfid_signal = rfid_signal(380e3:600e3);
 
-rfid_signal = read_complex_binary('../rfid-generator/rx_gen_signal.out');
-%rfid_signal = rfid_signal(1.4e5:1.70e5);
-%rfid_signal = rfid_signal(1.5255e5+20:1.61e5);
-
-% load('rx_gen_signal.mat');
-% rfid_signal = out_signal;
-
-%figure
-%plot(abs(rfid_signal));
+more off;
+figure
+plot(abs(rfid_signal));
+drawnow();
 
 Fs = 8e5; %800 KS.
 wnd_hist_size = 1500; %1500 uS ~ samples processed per block. (Change accordingly)
@@ -49,7 +47,7 @@ while (~is_signal_end)
     %check if we go outside limits    
     if (curr_pos + wnd_hist_size > length(rfid_signal))
         wnd_hist_block = abs(rfid_signal(curr_pos:end));
-        wnd_hist_block = [wnd_hist_block ; zeros(wnd_hist_size-length(rfid_signal(curr_pos:end)),1)];
+        wnd_hist_block = [wnd_hist_block]; %; zeros(wnd_hist_size-length(rfid_signal(curr_pos:end)))];
         is_signal_end = 1;
     else
         wnd_hist_block = rfid_signal(curr_pos:curr_pos+wnd_hist_size-1);
@@ -75,7 +73,7 @@ while (~is_signal_end)
             [tari, rt, tr, pv, pos, gtari] = rfid_gen2_get_reader_config(wnd_hist_block, reader_config(1), Fs);
             %set the position of the listener for decoding the querys.
             if (gtari > 0)
-                reader_config(2:end) = [tari, rt, tr, pv Fs];
+                reader_config(2:end) = [tari, rt, tr, pv, Fs];
                 curr_pos = (curr_pos - wnd_hist_size) + pos - rt;
                 wnd_hist_size = 32*pv; %QUERY has 22 symbols.
                 status = 2;
@@ -89,16 +87,17 @@ while (~is_signal_end)
                 status = 0;
             end
         case 2 %parse the pie symbols
-            
-            deco_bits = rfid_gen2_pie_parser(wnd_hist_block, reader_config);
+            [deco_bits, lre] = rfid_gen2_pie_parser(wnd_hist_block, reader_config);
             
             if (deco_bits(1) == 9)
                 fprintf('[rfid_listener]: Invalid bits...\n');
-                %return;
+                %unexpected state
+                status = 100;
             else
+                curr_pos = (curr_pos - wnd_hist_size) + lre;
                 %decode the session
                 [cmd_type, cmd_args] = rfid_gen2_pie_bdeco(deco_bits, reader_config(4), reader_config(6));
-                
+                                
                 %decide what to do based on the output
                 if (strcmp(cmd_type,'QRY') == 1) %we found a query, so next is the tags.                    
                     tag_srate = (1 / cmd_args(1)) * Fs;
@@ -147,6 +146,9 @@ while (~is_signal_end)
                     
                     fprintf('[rfid_listener]: Tag Encoding detected to be %s encoding...\n', modul_str);
                     fprintf('[rfid_listener]: Tag decodal... sample rate estimated at %d samples...\n', tag_srate);
+                    wnd_hist_size = tag_srate * 75;
+                    
+                    
                     tag_block = [];
                     status = 3;
                 end
@@ -169,31 +171,52 @@ while (~is_signal_end)
                     status = 3;
                 end
                 
+                if (strcmp(cmd_type, 'NAK') == 1)
+                    status = 5;
+                end
+                
+                if (strcmp(cmd_type, 'QADJ') == 1);
+                    %we expect tags.
+                    tag_block = [];
+                    status = 3;
+                end
+                
             end
         case 3 %store all the samples in a slot to feed the tag_decoder
             for i=1:length(wnd_hist_block)
                 if (wnd_hist_block(i) > reader_config(1))
                     tag_block = [tag_block wnd_hist_block(i)];
                 else
-                    tag_block = tag_block(1:end-50);
-                    %normalize the tag
-                    tag_block = tag_block / mean(tag_block) - 1;
-                    status = 4; %go to tag decodal
-                    curr_pos = curr_pos - (wnd_hist_size - i); %go back to the falling edge
-                    wnd_hist_size = 0; %stop processing blocks
-                    is_signal_end = 0; %guarantee the decodal of the tag
                     break;
                 end
             end
+            
+            if (length(tag_block) < 52)
+                fprintf('[rfid_listener]: Unexpected end of cycle!!!\n');
+                status = 100;
+                continue;
+            end
+                
+            tag_block = tag_block(1:end-50);
+            %normalize the tag
+            tag_block = tag_block / mean(tag_block) - 1;
+            status = 4; %go to tag decodal
+            curr_pos = curr_pos - (wnd_hist_size); %go back to the falling edge
+            wnd_hist_size = 0; %stop processing blocks
+            is_signal_end = 0; %guarantee the decodal of the tag
+                        
         case 4 %tag decodal
             wnd_hist_size = 1500; %enable the sample processing
             %TODO: detect if a collision exists
             %detect_collision()????
             
             %TODO: if a collision exists, then apply the FastICA???
-            
             %decode the tag
-            rn16_deco_bits = rfid_gen2_tag_decode(tag_block, tag_config(3), tag_config(1));
+            [rn16_deco_bits, ~, sym_pos] = rfid_gen2_tag_decode(tag_block, tag_config(3), tag_config(1));
+            
+            if (isempty(sym_pos) ~= 1)
+                curr_pos = curr_pos + sym_pos(end); %skip
+            end
             
             if (isempty(rn16_deco_bits) == 0)
                 raw_tag_bits = sprintf('%d ', rn16_deco_bits(1:end));
@@ -229,79 +252,98 @@ while (~is_signal_end)
             end
             
         case 5 %pie decodal after an QUERY
-            
-            %here we expect a 0 and a RTCAL (a 1) first.
-            
-            r_lengths = [];
-            last_pos = 0;
-            %r_sy_pos = [];
+            r_edge = [];
             lpos = 0;
             zero_samples = 0;
-            st = 0;
+            delim_samples = (12.5*Fs*1e-6) - 1;
+            end_cycle_pie = 0;
             
+            %calculate rising edges
             for i=1:length(wnd_hist_block)-1
                 
-                if (wnd_hist_block(i) < reader_config(1) && st == 0)
+                if (wnd_hist_block(i) < reader_config(1))
                     zero_samples = zero_samples + 1;
                 end
+            
+                if (wnd_hist_block(i) < reader_config(1) && wnd_hist_block(i+1) > reader_config(1))
                 
-                if (wnd_hist_block(i) > reader_config(1))
-                    st = 1;
-                end
-                
-                if (wnd_hist_block(i) <  reader_config(1) && wnd_hist_block(i+1) >  reader_config(1))
-                    r_lengths = [r_lengths  i-lpos];
-                    lpos = i;
-                    
-                    if (length(r_lengths) > 3) %we only care about 0, RT-CAL and the next symbol.
-                        last_pos = i;
+                    if (zero_samples > reader_config(3)) %more than RTCAL
+                        end_cycle_pie = 1;
                         break;
                     end
-                end
+                
+                    if (zero_samples >= delim_samples) %ignore temporal power offs
+                        r_edge = [r_edge i-lpos];
+                        lpos = i;
+                        zero_samples = 0;
+                    end
+                end                
             end
             
-            delim_samples = round(13.5*1e-6*Fs); %12.5 us delimitator
-            
-            if (zero_samples == 0) %unexpected silence with no commands
-                fprintf('[rfid_listener]: Unexpected silence of the tag.\n');
-                continue; %do not bother as if there is no zeros, no edges neither
-            end
-            
-            %if we found a more spacing and a q_value = 0, nothing to do
-            if (zero_samples > delim_samples)
+            if (end_cycle_pie == 1)
                 if (q_value == 0)
-                    fprintf('[rfid_listener]: No PIE Commands. Ending cycle...\n\n\n');
+                    fprintf('[rfid_listener: No PIE Commands. Ending cycle...\n\n\n');
                 else
-                    fprintf('[rfid_listener]: Unexpected end of the cycle...\n\n\n');
+                    fprintf('[rfid_listener: Unexpected end of cycle...\n\n\n');
                 end
+                
                 status = 0;
-                curr_pos = round(curr_pos - length(wnd_hist_block));
-                wnd_hist_size = 500;
+                curr_pos = curr_pos - length(wnd_hist_block);
+                wnd_hist_block = 1500;
+            end
+        
+            
+            if (isempty(r_edge) == 1)
+                fprintf('[rfid-listener]: Unexpected silence of the reader!!!\n');
+                continue; %skip and keep looking for PIE symbols
+            end
+            
+            offset_pie = r_edge(1);
+            
+            if (length(r_edge) < 4)
+                curr_pos = curr_pos - length(wnd_hist_block) + offset_pie;
+                wnd_hist_block = 1500;
                 continue;
             end
             
-            %check that the first 2 symbols are > 3 Tari.
-            r_lengths = r_lengths(2:end);
+            r_edge = r_edge(2:end);
             
-            if (sum(r_lengths(1:2)) > reader_config(2)*3)
-                
-                if (r_lengths(3) > reader_config(2)*3)
+            %here we can look for PIE symbols ~ we should get 0 - RTCAL - [TRCAL | 0 | 1]
+            %those values could be from new query or another command so double check
+            
+            ntari = r_edge(1);
+            nrtcal = r_edge(2);
+            nusymbol = r_edge(3);
+            
+            fprintf('Detected values: Tari: %d / RTCAL: %d / 3rd Symbol: %d\n', ntari, nrtcal, nusymbol)
+            
+            if (nrtcal < ntari*3.5 && nrtcal > ntari*2.2)
+                %check for TRCAL
+                if (nusymbol > nrtcal)
                     fprintf('[rfid_listener]: Unexpected start of another PIE Preamble...!!!\n\n\n');
                     status = 1;
                     curr_pos = curr_pos - wnd_hist_size;
-                    wnd_hist_size = 500;
+                    wnd_hist_size = 1500;
+                    is_signal_end = 0;      
+                    continue;
+                else
+                    fprintf('[rfid_listener]: PIE Frame-Sync detected...!!\n');
+                    status = 2;
+                    
+                    %fprintf('Debug: CuP: %f, WNDS: %f, OPI: %f\n\n', curr_pos, wnd_hist_size, offset_pie);
+                    %disp(r_edge)
+                    
+                    %curr_pos = (curr_pos - wnd_hist_size) + offset_pie + r_edge(2) - (round(r_edge(1)/2));
+                    curr_pos = (curr_pos - wnd_hist_size) + offset_pie + r_edge(2) - round(r_edge(1) / 2);
+                    wnd_hist_size = 26*pv; %ACK has 16 symbols.
+                    is_signal_end = 0; %force decodal
                     continue;
                 end
-                
-                fprintf('[rfid_listener]: PIE Frame-Sync detected...!!\n');
-                status = 2;
-                curr_pos = (curr_pos - wnd_hist_size) + sum(r_lengths(1:2));
-                %wnd_hist_size = 800;
-                wnd_hist_size = 26*pv; %ACK has 16 symbols.
-                continue;
             end
         otherwise
             error('Invalid FSM state!!!');
             break;
     end 
 end
+
+fprintf('Finished parsing the file!!!\n')
