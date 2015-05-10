@@ -39,6 +39,7 @@ qval = int(options.q_value)
 n_cycle = int(options.cycles_num)
 n_round = int(options.round_num)
 
+
 if dump_type == "none":
     print "* Alert: Skipping dumping of the rx block..."
 elif dump_type == "full":
@@ -62,6 +63,12 @@ slots = pow(2,qval);
 print "* Using", modul_msg[mtype], "modulation for tags..."
 print "* Q Value of", str(qval), "so", str(slots), "slots assigned for tags..."
 
+#global
+dec_rate = 16
+sw_dec = 5
+num_taps = int(64000 / ( (dec_rate * 4) * 40 )) #Filter matched to 1/4 of the 40 kHz tag cycle
+taps = [complex(1,1)] * num_taps
+
 
 class my_top_block(gr.top_block):
     def __init__(self):
@@ -69,13 +76,9 @@ class my_top_block(gr.top_block):
 
         amplitude = 5000
         interp_rate = 256
-        dec_rate = 16
-        sw_dec = 5
+        
         samp_rate = 4e6 # corresponds to dec_rate 16. (64M/16)
-
-        num_taps = int(64000 / ( (dec_rate * 4) * 40 )) #Filter matched to 1/4 of the 40 kHz tag cycle
-        taps = [complex(1,1)] * num_taps
-
+        
         matched_filt = filter.fir_filter_ccc(sw_dec, taps);
 
         agc = analog.agc2_cc(0.3, 1e-3, 1, 1)
@@ -92,6 +95,9 @@ class my_top_block(gr.top_block):
         omega_relative_limit = .05
 
         mm = digital.clock_recovery_mm_ff(omega, gain_omega, mu, gain_mu, omega_relative_limit)
+
+
+        #self.reader = rfid.reader_f(int(128e6/interp_rate));
         
         mtype = int(options.modul_type)
         qval = int(options.q_value)
@@ -107,12 +113,11 @@ class my_top_block(gr.top_block):
 
         tag_decoder = rfid.tag_decoder_f()
 
-        command_gate = rfid.command_gate_cc(12, 250, int(800e3))#int(64e6 / dec_rate / sw_dec))
+        command_gate = rfid.command_gate_cc(12, 250, int(800e3))
 
 
         to_complex = blocks.float_to_complex()
         amp = blocks.multiply_const_ff(amplitude)
-
 #TX
 		# working frequency at 915 MHz by default and RX Gain of 20
         freq = options.center_freq #915e6
@@ -120,40 +125,29 @@ class my_top_block(gr.top_block):
 
         tx = uhd.usrp_sink(",".join(("", "")),
         	uhd.stream_args(cpu_format="fc32",	channels=range(1)))
-        #tx.set_samp_rate(128e6/256) # 128M/256
+        tx.set_subdev_spec("A:0", 0) #TX on the TX-A side of the board.
         tx.set_samp_rate(500e3)
         tx.set_antenna("TX/RX", 0)
-        #tx.set_interp_rate(256)
-        #tx_subdev = (0,0)
-        #tx.set_mux(usrp.determine_tx_mux_value(tx, tx_subdev))
-        #subdev = usrp.selected_subdev(tx, tx_subdev)
-        #subdev.set_enable(True)
         tx.set_gain(tx.get_gain_range().stop(), 0)
         t = tx.set_center_freq(freq, 0)
-        if not t:
-            print "Couldn't set tx freq"
 #End TX
 
 #RX
         rx = uhd.usrp_source(",".join(("", "")),
-        uhd.stream_args(cpu_format="fc32",channels=range(1)) )
+        uhd.stream_args(cpu_format="fc32",channels=range(2)) ) #2 channels
+        
+        rx.set_subdev_spec("A:0 B:0", 0) #multiple reception from both A and B sides.
         rx.set_samp_rate(samp_rate)
-        #rx = usrp.source_c(0, dec_rate, fusb_block_size = 512, fusb_nblocks = 4)
-        #rx_subdev_spec = (1,0)
-        #rx.set_mux(usrp.determine_rx_mux_value(rx, rx_subdev_spec))
-        #rx_subdev = usrp.selected_subdev(rx, rx_subdev_spec)
-        rx.set_gain(rx_gain)
+        
+        #For the A Side
+        rx.set_center_freq(freq,0)
+        rx.set_gain(rx_gain,0)
         rx.set_antenna("RX2", 0)
-        #rx_subdev.set_auto_tr(False)
-        #rx_subdev.set_enable(True)
-
-        #r = usrp.tune(rx, 0, rx_subdev, freq)
-        r = rx.set_center_freq(freq, 0)
-
-        self.rx = rx
-        if not r:
-            print "Couldn't set rx freq"
-
+        
+        #For the B Side
+        rx.set_center_freq(freq,1)
+        rx.set_gain(rx_gain,1)
+        rx.set_antenna("RX2", 1)
 #End RX
 
         command_gate.set_ctrl_out(self.reader.ctrl_q())
@@ -162,7 +156,7 @@ class my_top_block(gr.top_block):
 
 
 #########Build Graph
-        self.connect(rx, matched_filt)
+        self.connect((rx,0), matched_filt)
         self.connect(matched_filt, command_gate)
         self.connect(command_gate, agc)
         self.connect(agc, to_mag)
@@ -170,16 +164,27 @@ class my_top_block(gr.top_block):
         self.connect(tag_decoder, self.reader, amp, to_complex, tx);
 #################
 
-		#Output dumps for debug
-        
+#Output dumps for debug        
+        if dump_type == "none":
+            #just connect channel 2 to null
+            f_nothing = blocks.null_sink(gr.sizeof_gr_complex*1)
+            self.connect((rx,1),f_nothing)
 
         if dump_type == "matched":
-            f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
-            self.connect(matched_filt, f_rxout)
+            mfilt_ch2 = filter.fir_filter_ccc(sw_dec, taps);
+            
+            f_rxout_ch1 = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout_ch1.out');
+            self.connect((rx,1), mfilt_ch2, f_rxout_ch1)
+            
+            f_rxout_ch2 = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout_ch2.out');
+            self.connect(matched_filt, f_rxout_ch2)
         
         if dump_type == "full":
-            f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
-            self.connect(rx, f_rxout)
+            f_rxout_ch1 = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout_ch1.out');
+            self.connect((rx,0), f_rxout_ch1)
+            
+            f_rxout_ch2 = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout_ch2.out');
+            self.connect((rx,1), f_rxout_ch2)
             
 def main():
 

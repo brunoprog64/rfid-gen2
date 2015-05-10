@@ -3,7 +3,7 @@
 #Modified by: Bruno Espinoza (bruno.espinozaamaya@uqconnect.edu.au)
 
 from gnuradio import gr, gru
-from gnuradio import uhd
+from gnuradio import blocks
 from gnuradio import eng_notation
 from gnuradio import analog,blocks,digital,filter
 from gnuradio.eng_option import eng_option
@@ -20,34 +20,17 @@ import optparse
 
 #parser for frequency and other options
 parser = optparse.OptionParser();
-parser.add_option('--f', action="store", dest="center_freq", default="915e6", help="Center Frequency", type="float");
-parser.add_option('--g', action="store", dest="rx_gain", default="20", help="RX Gain", type="float");
+parser.add_option('--f', action="store", dest="file_in", default="rx.out", help="File Name with Capture");
 parser.add_option('--l', action="store", dest="log_file", default="log_out.log", help="Log file name");
-parser.add_option('--d', action="store", dest="dump_file", default="none", help="[none|matched|full]");
 parser.add_option('--q', action="store", dest="q_value", default="0", help="Q value from 0 to 8");
 parser.add_option('--m', action="store", dest="modul_type", default="1", help="Modulation Type from 0 to 3 -> 0: FM Encoding, 1: Miller M=2, 2: Miller M=4, 3: Miller M=8");
-parser.add_option('--c', action="store", dest="cycles_num", default="5", help="Number of Reader Cycles (def. 5)");
-parser.add_option('--r', action="store", dest="round_num", default="10", help="Number of Rounds per Cycle (def. 10)");
-
 
 options, args = parser.parse_args();
 
 log_file = open(options.log_file, "a")
-dump_type = options.dump_file
 mtype = int(options.modul_type)
 qval = int(options.q_value)
-n_cycle = int(options.cycles_num)
-n_round = int(options.round_num)
-
-if dump_type == "none":
-    print "* Alert: Skipping dumping of the rx block..."
-elif dump_type == "full":
-    print "** Using a full dump of the RX block!!"
-elif dump_type == "matched":
-    print "** Using dump of the match_filter block!!"
-else:
-    print "Unknown dump_type flag!! Set to 'none'"
-    dump_type = 'none'
+f_in = options.file_in
 
 modul_msg = ["FM0", "Miller M=2", "Miller M=4", "Miller M=8"];
 
@@ -68,15 +51,13 @@ class my_top_block(gr.top_block):
         gr.top_block.__init__(self)
 
         amplitude = 5000
-        interp_rate = 256
-        dec_rate = 16
         sw_dec = 5
-        samp_rate = 4e6 # corresponds to dec_rate 16. (64M/16)
-
-        num_taps = int(64000 / ( (dec_rate * 4) * 40 )) #Filter matched to 1/4 of the 40 kHz tag cycle
+        num_taps = 25
+        samp_rate = 8e5
+        
         taps = [complex(1,1)] * num_taps
-
-        matched_filt = filter.fir_filter_ccc(sw_dec, taps);
+        matched_filt = filter.fir_filter_ccc(sw_dec, taps); 
+        
 
         agc = analog.agc2_cc(0.3, 1e-3, 1, 1)
         agc.set_max_gain(100)
@@ -99,88 +80,38 @@ class my_top_block(gr.top_block):
         if (mtype > 3 or mtype < 0):
             mtype = 1 #Miller M=2 by default
         
-        #qval = int(options.q_value)
         if qval > 8 or qval < 0:
             qval = 0;
         
-        self.reader = rfid.reader_f(int(500e3), mtype, qval, n_cycle, n_round)
+        
+        self.reader = rfid.reader_f(int(500e3), mtype, qval, 5, 10)
 
         tag_decoder = rfid.tag_decoder_f()
-
-        command_gate = rfid.command_gate_cc(12, 250, int(800e3))#int(64e6 / dec_rate / sw_dec))
-
+        command_gate = rfid.command_gate_cc(12, 250, int(800e3))
 
         to_complex = blocks.float_to_complex()
         amp = blocks.multiply_const_ff(amplitude)
+        
+        tx = blocks.null_sink(gr.sizeof_gr_complex*1)
+        rx = blocks.file_source(gr.sizeof_gr_complex*1,f_in, False) #no repeat
 
-#TX
-		# working frequency at 915 MHz by default and RX Gain of 20
-        freq = options.center_freq #915e6
-        rx_gain = options.rx_gain #20
-
-        tx = uhd.usrp_sink(",".join(("", "")),
-        	uhd.stream_args(cpu_format="fc32",	channels=range(1)))
-        #tx.set_samp_rate(128e6/256) # 128M/256
-        tx.set_samp_rate(500e3)
-        tx.set_antenna("TX/RX", 0)
-        #tx.set_interp_rate(256)
-        #tx_subdev = (0,0)
-        #tx.set_mux(usrp.determine_tx_mux_value(tx, tx_subdev))
-        #subdev = usrp.selected_subdev(tx, tx_subdev)
-        #subdev.set_enable(True)
-        tx.set_gain(tx.get_gain_range().stop(), 0)
-        t = tx.set_center_freq(freq, 0)
-        if not t:
-            print "Couldn't set tx freq"
-#End TX
-
-#RX
-        rx = uhd.usrp_source(",".join(("", "")),
-        uhd.stream_args(cpu_format="fc32",channels=range(1)) )
-        rx.set_samp_rate(samp_rate)
-        #rx = usrp.source_c(0, dec_rate, fusb_block_size = 512, fusb_nblocks = 4)
-        #rx_subdev_spec = (1,0)
-        #rx.set_mux(usrp.determine_rx_mux_value(rx, rx_subdev_spec))
-        #rx_subdev = usrp.selected_subdev(rx, rx_subdev_spec)
-        rx.set_gain(rx_gain)
-        rx.set_antenna("RX2", 0)
-        #rx_subdev.set_auto_tr(False)
-        #rx_subdev.set_enable(True)
-
-        #r = usrp.tune(rx, 0, rx_subdev, freq)
-        r = rx.set_center_freq(freq, 0)
-
-        self.rx = rx
-        if not r:
-            print "Couldn't set rx freq"
-
-#End RX
+        rx_throtle = blocks.throttle(gr.sizeof_gr_complex*1, samp_rate,True)
 
         command_gate.set_ctrl_out(self.reader.ctrl_q())
         tag_decoder.set_ctrl_out(self.reader.ctrl_q())
 
-
-
 #########Build Graph
-        self.connect(rx, matched_filt)
-        self.connect(matched_filt, command_gate)
+        #self.connect(rx, rx_throtle, matched_filt)
+        #self.connect(matched_filt, command_gate)
+        self.connect(rx, rx_throtle,command_gate)
         self.connect(command_gate, agc)
         self.connect(agc, to_mag)
         self.connect(to_mag, center, mm, tag_decoder)
         self.connect(tag_decoder, self.reader, amp, to_complex, tx);
 #################
-
-		#Output dumps for debug
-        
-
-        if dump_type == "matched":
-            f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
-            self.connect(matched_filt, f_rxout)
-        
-        if dump_type == "full":
-            f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'f_rxout.out');
-            self.connect(rx, f_rxout)
-            
+        f_rxout = blocks.file_sink(gr.sizeof_gr_complex, 'file.out');
+        self.connect(command_gate, f_rxout)
+    
 def main():
 
 
