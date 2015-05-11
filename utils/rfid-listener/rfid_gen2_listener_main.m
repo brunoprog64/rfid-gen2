@@ -13,12 +13,35 @@
 clear;
 close all;
 
+addpath('fastica-25');
+
+%user edits
+multiple_antennas = 1; %if set to 1, will assume 2 RX files exist
+file_mask_name = 'f_rxout'; %will add "_ch1.out / _ch2.out
+
 %load(filename);
 %OR: rfid_signal = read_complex_binary(filaname)
 
-%rfid_signal = read_complex_binary('../rfid-generator/rx_gen_signal.out');
-rfid_signal = read_complex_binary('f_rxout.out');
-rfid_signal = rfid_signal(380e3:600e3);
+tic(); %start internal counter
+
+if (multiple_antennas == 1)
+    
+    fil1 = strcat('../', file_mask_name, '_ch1.out');
+    fil2 = strcat('../', file_mask_name, '_ch2.out');
+    
+    fprintf('Multiple RX mode activared...\n');
+    fprintf(' * Loading file for RX1: %s...\n', fil1);
+    fprintf(' * Loading file for RX2: %s...\n', fil2);
+    
+    rfid_signal = read_complex_binary(fil1);
+    rfid_signal_ica = read_complex_binary(fil2);
+    
+    rfid_signal = rfid_signal(930e3:980e3);
+    rfid_signal_ica = rfid_signal_ica(930e3:980e3);
+else
+    rfid_signal = read_complex_binary('../f_rxout_ch1.out');
+    rfid_signal = rfid_signal(930e3:980e3);
+end
 
 more off;
 figure
@@ -39,9 +62,12 @@ tag_config = zeros(1,4); %samp_tag, modul_type, preamble, slots
 
 pie_block = [];
 tag_block = []; %store the data so can feed the tag decoder
+tag_block_ica = []; %store the data for the tag decoder (RX2)
 rn16_deco_bits = []; %store the bits of the decodal
 rn16_tag_num = 0; %store the number
 q_value = 0;
+
+rfid_stats = zeros(1,5); %no querys, no tags decoded, no tags undecodable, no ACKS, no bad ACKS
 
 while (~is_signal_end)
     %check if we go outside limits    
@@ -104,6 +130,8 @@ while (~is_signal_end)
                     tag_config = [tag_srate cmd_args(2:end)];
                     q_value = cmd_args(4);
                     
+                    rfid_stats(1) = rfid_stats(1) + 1; %add one query to count
+                    
                     %we only got the sampling rate of one period, but in
                     %Miller encoding this is different
                     
@@ -148,8 +176,12 @@ while (~is_signal_end)
                     fprintf('[rfid_listener]: Tag decodal... sample rate estimated at %d samples...\n', tag_srate);
                     wnd_hist_size = tag_srate * 75;
                     
-                    
                     tag_block = [];
+                    
+                    if (multiple_antennas > 0)
+                        tag_block_ica = [];
+                    end
+                    
                     status = 3;
                 end
                 
@@ -157,8 +189,10 @@ while (~is_signal_end)
                     ack_num = cmd_args(1);
                     if (ack_num == rn16_tag_num)
                         fprintf('[rfid_listener]: ACK validation successful. Now decoding EPC-Code...\n');
+                        rfid_stats(3) = rfid_stats(4) + 1;
                     else
                         fprintf('[rfid_listener]: Unexpected ACK! Listener Decodal do not match with the Reader...\n');
+                        rfid_stats(3) = rfid_stats(5) + 1;
                     end
                     status = 5;
                     wnd_hist_size = 4*1e-3*Fs; %big window for the EPC.
@@ -168,6 +202,10 @@ while (~is_signal_end)
                 if (strcmp(cmd_type, 'QREP') == 1)
                     %go to the next tag decodal
                     tag_block = [];
+                    
+                    if (multiple_antennas > 0)
+                        tag_block_ica = [];
+                    end
                     status = 3;
                 end
                 
@@ -178,14 +216,30 @@ while (~is_signal_end)
                 if (strcmp(cmd_type, 'QADJ') == 1);
                     %we expect tags.
                     tag_block = [];
+                    
+                    if (multiple_antennas > 0)
+                        tag_block_ica = [];
+                    end
+                    
                     status = 3;
                 end
                 
             end
         case 3 %store all the samples in a slot to feed the tag_decoder
+            
+            %multiple_antennas
+            if (multiple_antennas > 0)
+                wnd_ica_block = rfid_signal_ica(curr_pos-wnd_hist_size+1:curr_pos);
+                wnd_ica_block = abs(wnd_ica_block);
+            end
+                
             for i=1:length(wnd_hist_block)
                 if (wnd_hist_block(i) > reader_config(1))
                     tag_block = [tag_block wnd_hist_block(i)];
+                    
+                    if (multiple_antennas > 0)
+                        tag_block_ica = [tag_block_ica wnd_ica_block(i)];
+                    end
                 else
                     break;
                 end
@@ -193,13 +247,19 @@ while (~is_signal_end)
             
             if (length(tag_block) < 52)
                 fprintf('[rfid_listener]: Unexpected end of cycle!!!\n');
-                status = 100;
+                status = 100; %we do not know what to do, crash.
                 continue;
             end
                 
             tag_block = tag_block(1:end-50);
             %normalize the tag
             tag_block = tag_block / mean(tag_block) - 1;
+            
+            if (multiple_antennas > 0)
+                tag_block_ica = tag_block_ica(1:end-50);
+                tag_block_ica = tag_block_ica / mean(tag_block_ica) - 1;
+            end
+            
             status = 4; %go to tag decodal
             curr_pos = curr_pos - (wnd_hist_size); %go back to the falling edge
             wnd_hist_size = 0; %stop processing blocks
@@ -210,12 +270,31 @@ while (~is_signal_end)
             %TODO: detect if a collision exists
             %detect_collision()????
             
-            %TODO: if a collision exists, then apply the FastICA???
-            %decode the tag
-            [rn16_deco_bits, ~, sym_pos] = rfid_gen2_tag_decode(tag_block, tag_config(3), tag_config(1));
+            %if a collision exists, then apply the FastICA
+            
+            if (multiple_antennas > 0)
+                %demux and decode the signal
+                [tag_deco_clean, is_deco_data] = rfid_gen2_fastica_tags(tag_block, tag_block_ica, tag_config(3), tag_config(1));
+                
+                if (is_deco_data == 1)
+                    nv = 100; %the edge appears to, so we get rid of it
+                    figure
+                    subplot(2,1,1);
+                    plot(tag_block(nv:end));
+                    subplot(2,1,2);
+                    plot(tag_block_ica(nv:end));
+                end
+                
+                [rn16_deco_bits, ~, sym_pos] = rfid_gen2_tag_decode(tag_deco_clean, tag_config(3), tag_config(1));
+            else
+                %decode the tag
+                [rn16_deco_bits, ~, sym_pos] = rfid_gen2_tag_decode(tag_block, tag_config(3), tag_config(1));
+            end
             
             if (isempty(sym_pos) ~= 1)
                 curr_pos = curr_pos + sym_pos(end); %skip
+            else
+                rfid_stats(3) = rfid_stats(3) + 1;
             end
             
             if (isempty(rn16_deco_bits) == 0)
@@ -248,6 +327,7 @@ while (~is_signal_end)
                 rn16_tag_num = bi2de(rn16_deco_bits, 'right-msb');
                 fprintf('[rfid_listener]: Tag Backscatter decoded. RN16 is %d...\n', rn16_tag_num);
                 status = 5; %go to decode pie
+                rfid_stats(2) = rfid_stats(2) + 1;
                 %continue;
             end
             
@@ -346,4 +426,11 @@ while (~is_signal_end)
     end 
 end
 
+tot_runtime = toc(); %recover internal timer
+
 fprintf('Finished parsing the file!!!\n')
+fprintf('\n****** RFID Listener Statitics *********\n\n');
+fprintf(' - No. of Decoded QUERY: %d\n - No. of Decoded Tags: %d\n - No. of Undecodable Tags: %d\n - No. of ACK: %d\n - No. of Bad ACKs: %d\n\n', rfid_stats(1), 
+rfid_stats(2), rfid_stats(3),rfid_stats(4),rfid_stats(5));
+
+fprintf('Total Runtime: %f seconds...\n', tot_runtime)

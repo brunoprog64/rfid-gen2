@@ -6,7 +6,7 @@
 
 %2015 by Bruno Espinoza. (bruno.espinozaamaya@uqconnect.edu.au)
 
-function [y, pream_pos, sym_pos] = rfid_gen2_tag_decode(rx_signal, modul_type, samp_rate, no_bits_deco)
+function [y, pream_pos, sym_pos, sym_scores] = rfid_gen2_tag_decode(rx_signal, modul_type, samp_rate, no_bits_deco)
 
 if (nargin < 4)
     no_bits_deco = 17;
@@ -91,6 +91,7 @@ lscore = 0;
 score = 0;
 pream_pos = 0;
 sym_pos = [];
+sym_scores = [];
 
 %1st Correlation is Preamble
 for i=1:length(rx_signal)-length(tag_preamble_mask)
@@ -103,6 +104,7 @@ for i=1:length(rx_signal)-length(tag_preamble_mask)
     deco_pos = (i-1) + length(tag_preamble_mask);
     pream_pos = i;
     fprintf('[rfid_listener]: Tag preamble detected at %d with score %f...\n', i, score);
+    sym_scores = [score];
     break
   end
   
@@ -112,6 +114,7 @@ end
 if (deco_pos) == 0
   %no preamble found, no valid signal
   fprintf('[rfid_decoder]: Could not find preamble. (Score: %f) Invalid signal!!\n', score);
+  sym_scores = [0 zeros(1, no_bits_deco)];
   y = zeros(1,16);
   return
 end
@@ -137,6 +140,7 @@ for i=deco_pos:samp_rate:length(rx_signal)
   tmp_one = sum(rx_deco.*tag_one_bits);
   score_one = abs(tmp_one) / total_pwr;
   
+  sym_scores = [sym_scores max([score_one score_zero])];
   
   if (score_one > score_zero)
     deco_bits = [deco_bits 1];
