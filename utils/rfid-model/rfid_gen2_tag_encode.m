@@ -91,12 +91,12 @@ end
 
 for i=1:length(in_bits)
 
-    if (modul_type == 0) #modulate by FM0
+    if (modul_type == 0) %modulate by FM0
         if (l_symbol == 1)
             last_phase = last_phase * -1;
         end
         base_output =[base_output (fm0_bits_mask(in_bits(i)+1,:) * last_phase)];
-    else #modulate by Miller
+    else %modulate by Miller
     
         if ~(l_symbol == 0 && in_bits(i) == 1)
             last_phase = last_phase * -1;

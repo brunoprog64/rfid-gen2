@@ -430,7 +430,6 @@ tot_runtime = toc(); %recover internal timer
 
 fprintf('Finished parsing the file!!!\n')
 fprintf('\n****** RFID Listener Statitics *********\n\n');
-fprintf(' - No. of Decoded QUERY: %d\n - No. of Decoded Tags: %d\n - No. of Undecodable Tags: %d\n - No. of ACK: %d\n - No. of Bad ACKs: %d\n\n', rfid_stats(1), 
-rfid_stats(2), rfid_stats(3),rfid_stats(4),rfid_stats(5));
+fprintf(' - No. of Decoded QUERY: %d\n - No. of Decoded Tags: %d\n - No. of Undecodable Tags: %d\n - No. of ACK: %d\n - No. of Bad ACKs: %d\n\n', rfid_stats(1), rfid_stats(2), rfid_stats(3),rfid_stats(4),rfid_stats(5));
 
 fprintf('Total Runtime: %f seconds...\n', tot_runtime)

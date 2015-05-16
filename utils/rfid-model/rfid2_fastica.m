@@ -11,12 +11,12 @@ clear;
 addpath('fastica-25');
 
 %some options
-no_tags_emul = 2;
+no_tags_emul = 3;
 no_antennas = 2;
 pream_ex = 1;
 modul_type = 1; %Miller M=2
 s_rate_cycle = 20;
-awgn_level = 20;
+awgn_level = 33;
 t1_value_sampl = 400;
 
 s_rate = (power(2,modul_type)*2)*s_rate_cycle;
