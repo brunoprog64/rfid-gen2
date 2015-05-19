@@ -67,7 +67,7 @@ rn16_deco_bits = []; %store the bits of the decodal
 rn16_tag_num = 0; %store the number
 q_value = 0;
 
-rfid_stats = zeros(1,5); %no querys, no tags decoded, no tags undecodable, no ACKS, no bad ACKS
+rfid_stats = zeros(1,6); %no querys, no tags decoded, no tags undecodable, no ACKS, no bad ACKS, no collisions
 
 while (~is_signal_end)
     %check if we go outside limits    
@@ -267,12 +267,17 @@ while (~is_signal_end)
                         
         case 4 %tag decodal
             wnd_hist_size = 1500; %enable the sample processing
-            %TODO: detect if a collision exists
-            %detect_collision()????
+            %detect if a collision exists
+            coll_exist = rfid_gen2_check_collision(tag_block, tag_config(3), tag_config(1));
+            
+            if (coll_exist == 1)
+                fprintf('[rfid_listener]: Collisison detected!!!\n\n');
+                rfid_stats(6) = rfid_stats(6) + 1;
+            end
             
             %if a collision exists, then apply the FastICA
             
-            if (multiple_antennas > 0)
+            if (multiple_antennas > 0 && coll_exist == 1)
                 %demux and decode the signal
                 [tag_deco_clean, is_deco_data] = rfid_gen2_fastica_tags(tag_block, tag_block_ica, tag_config(3), tag_config(1));
                 
@@ -430,6 +435,8 @@ tot_runtime = toc(); %recover internal timer
 
 fprintf('Finished parsing the file!!!\n')
 fprintf('\n****** RFID Listener Statitics *********\n\n');
-fprintf(' - No. of Decoded QUERY: %d\n - No. of Decoded Tags: %d\n - No. of Undecodable Tags: %d\n - No. of ACK: %d\n - No. of Bad ACKs: %d\n\n', rfid_stats(1), rfid_stats(2), rfid_stats(3),rfid_stats(4),rfid_stats(5));
+fprintf(' - No. of Decoded QUERY: %d\n - No. of Decoded Tags: %d\n - No. of Undecodable Tags: %d\n - No. of ACK: %d\n - No. of Bad ACKs: %d\n', rfid_stats(1), 
+rfid_stats(2), rfid_stats(3),rfid_stats(4),rfid_stats(5));
+fprintf(' - No. of Collisions detected: %d\n\n', rfid_stats(6));
 
 fprintf('Total Runtime: %f seconds...\n', tot_runtime)

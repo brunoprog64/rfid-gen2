@@ -34,12 +34,16 @@ function [best_tag, is_deco_data] = rfid_gen2_fastica_tags(tag_rx1, tag_rx2, mod
     scores_signal = zeros(1, size(tags_ica,1));
     
     for i=1:size(tags_ica,1)
-        [~, pream_pos, ~, scores] = rfid_gen2_tag_decode(tags_ica(i,:), modul_type, samp_rate);
-        
-        if (pream_pos > 0)
-            scores_signal(i) = mean(scores); 
+        if (rfid_gen2_check_collision(tags_ica(i,:), modul_type, samp_rate) == 1) 
+            scores_signal(i) = -999; %do not bother on decoding, unrecoverable
         else
-            scores_signal(i) = -999; %unrecoverable signal
+            [~, pream_pos, ~, scores] = rfid_gen2_tag_decode(tags_ica(i,:), modul_type, samp_rate);
+            
+            if (pream_pos > 0)
+                scores_signal(i) = mean(scores); 
+            else
+                scores_signal(i) = -999; %unrecoverable signal
+            end
         end
     end
     

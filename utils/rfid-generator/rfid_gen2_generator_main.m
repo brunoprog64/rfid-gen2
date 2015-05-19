@@ -194,13 +194,20 @@ tag_rx = tag_rx + 1;
 
 out_signal = [config_signal qry_cmd tag_rx zeros(1,pwr_off_samp/2)] * main_amp;
 
-
-
 phaoff = (pmax-pmin).*rand(1,1) + pmin;
 out_signal = out_signal .* exp(-1i*phaoff);
 out_signal = awgn(out_signal, main_snr);
 out_signal = out_signal / max(out_signal);
 out_signal = out_signal * 0.75;
+
+%low pass filter the signal, so the square transitions are smooth
+order = 28;
+cutoff_hz = 250e3; %250 KHz according to specs
+nyq_freq = Fs / 2;
+cutoff_norm = cutoff_hz / nyq_freq;
+
+fir_coeff = fir1(order, cutoff_norm);
+out_signal = filter(fir_coeff, 1, out_signal);
 
 plot(abs(out_signal));
 
