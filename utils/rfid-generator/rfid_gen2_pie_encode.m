@@ -1,4 +1,12 @@
-function [y] = rfid_gen_pie_encode(in_bits, rfid_config)
+%rfid_gen2_pie_encode() --- Function to encode PIE signals
+
+%This function will produce PIE signals according to the parameters passed
+%and the bits passed. It will use the One Value and PW to produce the
+%signal.
+
+%2015 by Bruno Espinoza. (bruno.espinozaamaya@uqconnect.edu.au
+
+function [y] = rfid_gen2_pie_encode(in_bits, rfid_config)
 
 one_samp = rfid_config(1);
 pw_samp = rfid_config(2);

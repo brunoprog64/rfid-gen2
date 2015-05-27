@@ -1,3 +1,12 @@
+%rfid_gen2_tag_model() --- Function to simulate a tag channel
+
+%This function will simulate a multiple answer of a tag. If no collision,
+%it will just output the same input, but if not, it will return a
+%collision signal.
+
+%2015 by Bruno Espinoza. (bruno.espinozaamaya@uqconnect.edu.au)
+
+
 function [y, rn16, coll] = rfid_gen2_tag_model(no_tags, tag_counter, tag_rn16, tag_config)
 
 %fetch configuration [tag_bfreq modul_type tr_ext t1_sampl Fs]

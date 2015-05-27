@@ -2,7 +2,8 @@
 
 %IMPORTANT: Please notice that this requires a precise symbol rate. In raw captures this is not possible.
 %The Buettner Encoder apply a clock recovery scheme that outputs 2 samples per symbol and then uses the same method used here.
-%Currently I cannot replicate that Miller and Mueller method in Matlab / Octave.
+%Please use the Zerocrossings clock recovery on the Buettner package
+%instead of the Muller recovery.
 
 %2015 by Bruno Espinoza. (bruno.espinozaamaya@uqconnect.edu.au)
 
@@ -32,11 +33,6 @@ m8_bit_mask_bits = [1 -1 1 -1 1 -1 1 -1 -1 1 -1 1 -1 1 -1 1];
 if (isempty(rx_signal) == 1)
   error('Need data to decode!!!');
 end
-
-%TODO: M=2 and M=4
-% if (modul_type > 1)
-%   error('Miller M=4 and M=8 not implemented yet!!');
-% end
 
 %check if the signal is valid
 if ~(min(rx_signal) < 0 && max(rx_signal) > 0)
@@ -113,7 +109,7 @@ end
 
 if (deco_pos) == 0
   %no preamble found, no valid signal
-  fprintf('[rfid_decoder]: Could not find preamble. (Score: %f) Invalid signal!!\n', score);
+  %fprintf('[rfid_decoder]: Could not find preamble. (Score: %f) Invalid signal!!\n', score);
   sym_scores = [0 zeros(1, no_bits_deco)];
   y = zeros(1,16);
   return

@@ -1,5 +1,15 @@
 function [cmd_type, cmd_args] = rfid_gen2_pie_bdeco(bits_deco, tr_val, Fs)
-%For now only: QUERY, QUERYREP, ACK, QUERY_ADJUST, NAK
+
+%rfid_gen2_pie_bdeco() --- Function to decode and extract data from PIE
+%commands
+
+%This function will extract the parameters from a series of RFID commands,
+%this information is needed for the next blocks on the listener.
+%The function will return the name of the command or 'UKW' otherwise.
+
+%The following are implemented: QUERY, QUERYREP, ACK, QUERY_ADJUST, NAK
+
+%2015 by Bruno Espinoza. (bruno.espinozaamaya@uqconnect.edu.au
 
 cmd_type = 'UKW';
 cmd_args = [];
@@ -12,6 +22,12 @@ state = 0;
 i = 1;
 
 while (i <= length(bits_deco))
+
+    %see if we can grab 2 bits
+    if (i+2 > length(bits_deco)) %we can't take more than 2 bits
+        return; %abort
+    end
+
     switch state
         case 0 %grab 2 bits
             head_bits = bi2de(bits_deco(i:i+2-1), 'left-msb');

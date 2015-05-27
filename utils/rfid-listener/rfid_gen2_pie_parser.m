@@ -1,5 +1,13 @@
 function [deco_bits, last_redg] = rfid_gen2_pie_parser(rx_signal, reader_config)
 
+%rfid_gen2_pie_parser() --- Function to decode PIE signals
+
+%This function will decode PIE signals by comparing the duty cycle of the
+%signal with the pivot value. If the signal is more than 4 RTCals, it will
+%output 9, and 0 or 1 otherwise, depending on the bit.
+
+%2015 by Bruno Espinoza. (bruno.espinozaamaya@uqconnect.edu.au
+
 thres = reader_config(1);
 rtcal =  reader_config(3);
 trcal = reader_config(4);

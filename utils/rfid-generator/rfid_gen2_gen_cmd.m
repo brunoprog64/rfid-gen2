@@ -1,4 +1,13 @@
-function [y] = rfid_gen_cmd(cmd_type, args, rfid_params)
+%rfid_gen2_gen_cmd() --- Function to generate Reader commands
+
+%This function will generate a Reader PIE Encoding signal with the
+%parameters provided.
+
+%Only mandatory commands: QUERY, ACK, NAK, QREP and Q-ADJ are implemented.
+
+%2015 by Bruno Espinoza. (bruno.espinozaamaya@uqconnect.edu.au)
+
+function [y] = rfid_gen2_gen_cmd(cmd_type, args, rfid_params)
 
 out_cmd = [];
 

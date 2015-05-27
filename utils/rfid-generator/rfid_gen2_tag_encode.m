@@ -1,4 +1,10 @@
 %RFID Encoding --- Script to encode binary data.
+
+%rfid_gen2_tag_encode() --- Function to encode a Tag signal
+
+%This function will produce tag signals according to the parameters
+%passed. It support all the 4 types of modulation.
+
 %2015 by Bruno Espinoza. (bruno.espinozaamaya@uqconnect.edu.au)
 
 function [y] = rfid_gen2_tag_encode(in_bits, tr_ext, modul_type, samp_rate)

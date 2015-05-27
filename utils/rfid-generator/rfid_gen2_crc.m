@@ -1,3 +1,10 @@
+%rfid_gen2_crc() --- Function to compute a CRC
+
+%This function will calculate the CRC for the QUERY commands according to
+%the RFID-CRC5 polynomial.
+
+%2015 by Bruno Espinoza. (bruno.espinozaamaya@uqconnect.edu.au)
+
 function [ y ] = rfid_gen2_crc( input_bits , crc_poly)
  
     if (nargin < 2)

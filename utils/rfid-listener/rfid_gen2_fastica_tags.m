@@ -1,5 +1,13 @@
 function [best_tag, is_deco_data] = rfid_gen2_fastica_tags(tag_rx1, tag_rx2, modul_type, samp_rate)
 
+%rfid_gen2_fastica_tags() --- Function to recover a tag from a collision
+
+%This function will use FastICA functions to try to recover a collision.
+%Then it will select the 'best decodable' function, by decoding the tag and
+%taking the sumation of the correlation scores per symbol.
+
+%2015 by Bruno Espinoza. (bruno.espinozaamaya@uqconnect.edu.au
+
     %check if both RX are equal
     tag_length = 0;
     is_deco_data = 0;
@@ -20,30 +28,17 @@ function [best_tag, is_deco_data] = rfid_gen2_fastica_tags(tag_rx1, tag_rx2, mod
     
     %do the F.ICA
     tags_ica = fastica(tag_mix,'approach', 'symm', 'verbose', 'off');
-    
-    %debug
-    %figure
-    %subplot(2,1,1);
-    %plot(tags_ica(1,:));
-    %subplot(2,1,2);
-    %plot(tags_ica(2,:));
-    
-    %Choose the best signal
+    %tags_ica = fastica(tag_mix,'verbose', 'off');
     
     best_tag = [];
     scores_signal = zeros(1, size(tags_ica,1));
     
     for i=1:size(tags_ica,1)
-        if (rfid_gen2_check_collision(tags_ica(i,:), modul_type, samp_rate) == 1) 
-            scores_signal(i) = -999; %do not bother on decoding, unrecoverable
+        [~, pream_pos, ~, scores] = rfid_gen2_tag_decode(tags_ica(i,:), modul_type, samp_rate);
+        if (pream_pos > 0)
+            scores_signal(i) = mean(scores);
         else
-            [~, pream_pos, ~, scores] = rfid_gen2_tag_decode(tags_ica(i,:), modul_type, samp_rate);
-            
-            if (pream_pos > 0)
-                scores_signal(i) = mean(scores); 
-            else
-                scores_signal(i) = -999; %unrecoverable signal
-            end
+            scores_signal(i) = -999; %unrecoverable signal
         end
     end
     
@@ -60,6 +55,5 @@ function [best_tag, is_deco_data] = rfid_gen2_fastica_tags(tag_rx1, tag_rx2, mod
         is_deco_data = 1;
     end
     
-    best_tag = tags_ica(bpos,:);
-    
+    best_tag = tags_ica(bpos,20:end);
 end
